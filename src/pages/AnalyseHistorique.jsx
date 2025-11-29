@@ -10,6 +10,29 @@ export default function AnalyseHistorique() {
     const [ville, setVille] = useState('');
     const [region, setRegion] = useState('');
 
+    // Données des régions et villes du Togo
+    const regionsVilles = {
+        'Maritime': ['Lomé', 'Aného', 'Vogan', 'Tsévié', 'Tabligbo', 'Afagnan'],
+        'Plateaux': ['Atakpamé', 'Kpalimé', 'Notsé', 'Badou', 'Amlamé'],
+        'Centrale': ['Sokodé', 'Tchamba', 'Sotouboua', 'Blitta'],
+        'Kara': ['Kara', 'Niamtougou', 'Bassar', 'Bafilo', 'Pagouda'],
+        'Savanes': ['Dapaong', 'Mango', 'Cinkassé', 'Tandjoaré']
+    };
+
+    // Quand la région change, réinitialiser la ville
+    const handleRegionChange = (e) => {
+        setRegion(e.target.value);
+        setVille(''); // Réinitialiser la ville
+    };
+
+    // Obtenir les villes disponibles selon la région sélectionnée
+    const getAvailableCities = () => {
+        if (region && regionsVilles[region]) {
+            return regionsVilles[region];
+        }
+        return [];
+    };
+
     // Gestion des checkboxes avec logique mutuelle
     const [joursFeries, setJoursFeries] = useState(false);
     const [joursSemaine, setJoursSemaine] = useState(false);
@@ -55,11 +78,11 @@ export default function AnalyseHistorique() {
 
     // Données du tableau
     const historiqueData = [
-        { date: '25 Déc 2025', prevision: 418, confSup: 441, intervalle: 91, statut: 'Normal' },
-        { date: '24 Déc 2025', prevision: 445, confSup: 468, intervalle: 93, statut: 'Pic Soir' },
-        { date: '23 Déc 2025', prevision: 432, confSup: 454, intervalle: 92, statut: 'Pic Matin' },
-        { date: '22 Déc 2025', prevision: 425, confSup: 447, intervalle: 91, statut: 'Normal' },
-        { date: '21 Déc 2025', prevision: 438, confSup: 461, intervalle: 92, statut: 'Pic Soir' },
+        { date: '25 Déc 2025', prevision: 418, confSup: 441, confiance: 91, statut: 'Normal' },
+        { date: '24 Déc 2025', prevision: 445, confSup: 468, confiance: 93, statut: 'Pic Soir' },
+        { date: '23 Déc 2025', prevision: 432, confSup: 454, confiance: 92, statut: 'Pic Matin' },
+        { date: '22 Déc 2025', prevision: 425, confSup: 447, confiance: 91, statut: 'Normal' },
+        { date: '21 Déc 2025', prevision: 438, confSup: 461, confiance: 92, statut: 'Pic Soir' },
     ];
 
     // Données pour les graphiques selon le type d'analyse
@@ -156,34 +179,47 @@ export default function AnalyseHistorique() {
                         />
                     </div>
 
-                    {/* Ville */}
-                    <div>
-                        <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
-                            <GiModernCity className="text-secondary text-xl" />
-                            Ville
-                        </label>
-                        <input
-                            type="text"
-                            value={ville}
-                            onChange={(e) => setVille(e.target.value)}
-                            placeholder="Ex: Dakar"
-                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"
-                        />
-                    </div>
-
                     {/* Région */}
                     <div>
                         <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
                             <BsBuilding className="text-secondary text-xl" />
                             Région
                         </label>
-                        <input
-                            type="text"
+                        <select
                             value={region}
-                            onChange={(e) => setRegion(e.target.value)}
-                            placeholder="Ex: Dakar"
-                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"
-                        />
+                            onChange={handleRegionChange}
+                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-secondary/50 cursor-pointer"
+                        >
+                            <option value="" className="bg-tertiary text-white">Sélectionnez une région</option>
+                            <option value="Maritime" className="bg-tertiary text-white">Maritime</option>
+                            <option value="Plateaux" className="bg-tertiary text-white">Plateaux</option>
+                            <option value="Centrale" className="bg-tertiary text-white">Centrale</option>
+                            <option value="Kara" className="bg-tertiary text-white">Kara</option>
+                            <option value="Savanes" className="bg-tertiary text-white">Savanes</option>
+                        </select>
+                    </div>
+
+                    {/* Ville */}
+                    <div>
+                        <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
+                            <GiModernCity className="text-secondary text-xl" />
+                            Ville
+                        </label>
+                        <select
+                            value={ville}
+                            onChange={(e) => setVille(e.target.value)}
+                            disabled={!region}
+                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-secondary/50 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <option value="" className="bg-tertiary text-white">
+                                {region ? 'Sélectionnez une ville' : 'Sélectionnez d\'abord une région'}
+                            </option>
+                            {getAvailableCities().map((city) => (
+                                <option key={city} value={city} className="bg-tertiary text-white">
+                                    {city}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
 
@@ -359,10 +395,10 @@ export default function AnalyseHistorique() {
                                                 <div className="flex-1 bg-gray-700 rounded-full h-2.5 overflow-hidden">
                                                     <div
                                                         className="bg-gradient-to-r from-secondary to-green-400 h-2.5 rounded-full transition-all duration-500"
-                                                        style={{ width: `${row.intervalle}%` }}
+                                                        style={{ width: `${row.confiance}%` }}
                                                     ></div>
                                                 </div>
-                                                <span className="text-sm font-medium w-12 text-right">{row.intervalle}%</span>
+                                                <span className="text-sm font-medium w-12 text-right">{row.confiance}%</span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-center">
