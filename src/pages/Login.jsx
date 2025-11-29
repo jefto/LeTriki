@@ -20,10 +20,10 @@ export default function Login() {
             <div className="min-h-screen w-full flex items-center justify-center px-4">
                 <div className="w-full max-w-md p-8 rounded-3xl backdrop-blur-sm bg-white/60 shadow-2xl border border-white/20">
                     <h1 className="text-4xl font-bold text-primary text-center mb-2">CONEXION</h1>
-                    <p className="text-tertiary text-center font-semibold mb-2">Welcome back</p>
-                    <p className="text-tertiary text-center text-sm font-light mb-8">
-                        Prenez soin de bien entrer vos identifiant et de ne pas les partager
-                        avec tierce personne.
+                    <p className="text-tertiary text-center font-semibold mb-10">Welcome back</p>
+                    <p className="text-white bg-tertiary rounded-lg p-2 text-center text-sm font-light mb-8">
+                        Plateforme web dédiée à la centralisation, à l’analyse et à la
+                        visualisation dynamique des données de consommation électrique au Togo
                     </p>
 
                     {/* Nom d'utilisateur */}
@@ -39,7 +39,7 @@ export default function Login() {
                     </div>
 
                     {/* Mot de passe */}
-                    <div className="mb-8">
+                    <div >
                         <label className="block text-tertiary font-semibold mb-2">
                             Mot de passe
                         </label>
@@ -62,6 +62,17 @@ export default function Login() {
                             </button>
                         </div>
                     </div>
+
+                    <div
+                        className={`flex justify-end` }
+                    >
+                        <button
+                            className={`mb-8 text-sm`}
+                        >
+                            Mot de passe oublié ?
+                        </button>
+                    </div>
+
 
                     {/* Bouton de connexion */}
                     <button className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl">

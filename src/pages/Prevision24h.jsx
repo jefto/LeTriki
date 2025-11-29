@@ -24,39 +24,39 @@ export default function Prevision24h() {
 
     // Données du tableau détaillé
     const detailedData = [
-        { heure: '00:00', prevision: 280, confSup: 295, intervalle: 85, statut: 'Normal' },
-        { heure: '01:00', prevision: 265, confSup: 278, intervalle: 82, statut: 'Normal' },
-        { heure: '02:00', prevision: 250, confSup: 262, intervalle: 80, statut: 'Normal' },
-        { heure: '03:00', prevision: 245, confSup: 257, intervalle: 78, statut: 'Normal' },
-        { heure: '04:00', prevision: 255, confSup: 268, intervalle: 79, statut: 'Normal' },
-        { heure: '05:00', prevision: 270, confSup: 284, intervalle: 81, statut: 'Normal' },
-        { heure: '06:00', prevision: 310, confSup: 325, intervalle: 84, statut: 'Normal' },
-        { heure: '07:00', prevision: 360, confSup: 378, intervalle: 88, statut: 'Pic Matin' },
-        { heure: '08:00', prevision: 400, confSup: 420, intervalle: 90, statut: 'Pic Matin' },
-        { heure: '09:00', prevision: 425, confSup: 447, intervalle: 91, statut: 'Pic Matin' },
-        { heure: '10:00', prevision: 440, confSup: 462, intervalle: 92, statut: 'Normal' },
-        { heure: '11:00', prevision: 455, confSup: 478, intervalle: 93, statut: 'Normal' },
-        { heure: '12:00', prevision: 465, confSup: 488, intervalle: 94, statut: 'Normal' },
-        { heure: '13:00', prevision: 460, confSup: 483, intervalle: 93, statut: 'Normal' },
-        { heure: '14:00', prevision: 450, confSup: 472, intervalle: 92, statut: 'Normal' },
-        { heure: '15:00', prevision: 445, confSup: 467, intervalle: 91, statut: 'Normal' },
-        { heure: '16:00', prevision: 460, confSup: 483, intervalle: 93, statut: 'Normal' },
-        { heure: '17:00', prevision: 490, confSup: 514, intervalle: 94, statut: 'Pic Soir' },
-        { heure: '18:00', prevision: 520, confSup: 546, intervalle: 96, statut: 'Pic Soir' },
-        { heure: '19:00', prevision: 510, confSup: 535, intervalle: 95, statut: 'Pic Soir' },
-        { heure: '20:00', prevision: 480, confSup: 504, intervalle: 93, statut: 'Normal' },
-        { heure: '21:00', prevision: 420, confSup: 441, intervalle: 90, statut: 'Normal' },
-        { heure: '22:00', prevision: 360, confSup: 378, intervalle: 88, statut: 'Normal' },
-        { heure: '23:00', prevision: 310, confSup: 325, intervalle: 84, statut: 'Normal' },
+        { heure: '00:00', prevision: 280, confSup: 295, confiance: 85, statut: 'Normal' },
+        { heure: '01:00', prevision: 265, confSup: 278, confiance: 82, statut: 'Normal' },
+        { heure: '02:00', prevision: 250, confSup: 262, confiance: 80, statut: 'Normal' },
+        { heure: '03:00', prevision: 245, confSup: 257, confiance: 78, statut: 'Normal' },
+        { heure: '04:00', prevision: 255, confSup: 268, confiance: 79, statut: 'Normal' },
+        { heure: '05:00', prevision: 270, confSup: 284, confiance: 81, statut: 'Normal' },
+        { heure: '06:00', prevision: 310, confSup: 325, confiance: 84, statut: 'Normal' },
+        { heure: '07:00', prevision: 360, confSup: 378, confiance: 88, statut: 'Pic Matin' },
+        { heure: '08:00', prevision: 400, confSup: 420, confiance: 90, statut: 'Pic Matin' },
+        { heure: '09:00', prevision: 425, confSup: 447, confiance: 91, statut: 'Pic Matin' },
+        { heure: '10:00', prevision: 440, confSup: 462, confiance: 92, statut: 'Normal' },
+        { heure: '11:00', prevision: 455, confSup: 478, confiance: 93, statut: 'Normal' },
+        { heure: '12:00', prevision: 465, confSup: 488, confiance: 94, statut: 'Normal' },
+        { heure: '13:00', prevision: 460, confSup: 483, confiance: 93, statut: 'Normal' },
+        { heure: '14:00', prevision: 450, confSup: 472, confiance: 92, statut: 'Normal' },
+        { heure: '15:00', prevision: 445, confSup: 467, confiance: 91, statut: 'Normal' },
+        { heure: '16:00', prevision: 460, confSup: 483, confiance: 93, statut: 'Normal' },
+        { heure: '17:00', prevision: 490, confSup: 514, confiance: 94, statut: 'Pic Soir' },
+        { heure: '18:00', prevision: 520, confSup: 546, confiance: 96, statut: 'Pic Soir' },
+        { heure: '19:00', prevision: 510, confSup: 535, confiance: 95, statut: 'Pic Soir' },
+        { heure: '20:00', prevision: 480, confSup: 504, confiance: 93, statut: 'Normal' },
+        { heure: '21:00', prevision: 420, confSup: 441, confiance: 90, statut: 'Normal' },
+        { heure: '22:00', prevision: 360, confSup: 378, confiance: 88, statut: 'Normal' },
+        { heure: '23:00', prevision: 310, confSup: 325, confiance: 84, statut: 'Normal' },
     ];
 
     // Données historiques
     const historiqueData = [
-        { date: '25 Déc 2025', prevision: 418, confSup: 441, intervalle: 91, statut: 'Normal' },
-        { date: '24 Déc 2025', prevision: 445, confSup: 468, intervalle: 93, statut: 'Pic Soir' },
-        { date: '23 Déc 2025', prevision: 432, confSup: 454, intervalle: 92, statut: 'Pic Matin' },
-        { date: '22 Déc 2025', prevision: 425, confSup: 447, intervalle: 91, statut: 'Normal' },
-        { date: '21 Déc 2025', prevision: 438, confSup: 461, intervalle: 92, statut: 'Pic Soir' },
+        { date: '25 Déc 2025', prevision: 418, confSup: 441, confiance: 91, statut: 'Normal' },
+        { date: '24 Déc 2025', prevision: 445, confSup: 468, confiance: 93, statut: 'Pic Soir' },
+        { date: '23 Déc 2025', prevision: 432, confSup: 454, confiance: 92, statut: 'Pic Matin' },
+        { date: '22 Déc 2025', prevision: 425, confSup: 447, confiance: 91, statut: 'Normal' },
+        { date: '21 Déc 2025', prevision: 438, confSup: 461, confiance: 92, statut: 'Pic Soir' },
     ];
 
     const getStatusStyle = (statut) => {
@@ -98,18 +98,27 @@ export default function Prevision24h() {
             {/* Formulaire de génération */}
             <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 mb-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Date Cible */}
+                    {/* Horizon temporel*/}
                     <div>
                         <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
                             <CiCalendarDate className="text-secondary text-xl" />
-                            Date Cible (J+1)
+                            Horizon Temporel
                         </label>
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"
-                        />
+                        {/*<input*/}
+                        {/*    type="date"*/}
+                        {/*    value={selectedDate}*/}
+                        {/*    onChange={(e) => setSelectedDate(e.target.value)}*/}
+                        {/*    className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"*/}
+                        {/*/>*/}
+                        <select
+                            value={selectedModel}
+                            onChange={(e) => setSelectedModel(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-secondary/50"
+                        >
+                            <option value="24h">24h par défaut</option>
+                            <option value="Semaine">Semaine</option>
+                            <option value="Mensuel">Mensuel</option>
+                        </select>
                     </div>
 
                     {/* Modèle */}
@@ -259,7 +268,7 @@ export default function Prevision24h() {
                                     <th className="text-left py-3 px-4 font-semibold text-secondary">Heure</th>
                                     <th className="text-right py-3 px-4 font-semibold text-secondary">Prévision (MW)</th>
                                     <th className="text-right py-3 px-4 font-semibold text-secondary">Conf. Sup. (MW)</th>
-                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Intervalle</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Confiance</th>
                                     <th className="text-center py-3 px-4 font-semibold text-secondary">Statut</th>
                                 </tr>
                             </thead>
@@ -274,10 +283,10 @@ export default function Prevision24h() {
                                                 <div className="flex-1 bg-gray-700 rounded-full h-2.5 overflow-hidden">
                                                     <div
                                                         className="bg-gradient-to-r from-secondary to-green-400 h-2.5 rounded-full transition-all duration-500"
-                                                        style={{ width: `${row.intervalle}%` }}
+                                                        style={{ width: `${row.confiance}%` }}
                                                     ></div>
                                                 </div>
-                                                <span className="text-sm font-medium w-12 text-right">{row.intervalle}%</span>
+                                                <span className="text-sm font-medium w-12 text-right">{row.confiance}%</span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-center">
@@ -307,7 +316,7 @@ export default function Prevision24h() {
                                     <th className="text-left py-3 px-4 font-semibold text-secondary">Date</th>
                                     <th className="text-right py-3 px-4 font-semibold text-secondary">Prévision (MW)</th>
                                     <th className="text-right py-3 px-4 font-semibold text-secondary">Conf. Sup. (MW)</th>
-                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Intervalle</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Confiance</th>
                                     <th className="text-center py-3 px-4 font-semibold text-secondary">Statut</th>
                                     <th className="text-center py-3 px-4 font-semibold text-secondary">Action</th>
                                 </tr>
@@ -323,10 +332,10 @@ export default function Prevision24h() {
                                                 <div className="flex-1 bg-gray-700 rounded-full h-2.5 overflow-hidden">
                                                     <div
                                                         className="bg-gradient-to-r from-secondary to-green-400 h-2.5 rounded-full transition-all duration-500"
-                                                        style={{ width: `${row.intervalle}%` }}
+                                                        style={{ width: `${row.confiance}%` }}
                                                     ></div>
                                                 </div>
-                                                <span className="text-sm font-medium w-12 text-right">{row.intervalle}%</span>
+                                                <span className="text-sm font-medium w-12 text-right">{row.confiance}%</span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-4 text-center">

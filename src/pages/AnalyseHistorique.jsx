@@ -343,7 +343,7 @@ export default function AnalyseHistorique() {
                                     <th className="text-left py-3 px-4 font-semibold text-secondary">Date</th>
                                     <th className="text-right py-3 px-4 font-semibold text-secondary">Prévision (MW)</th>
                                     <th className="text-right py-3 px-4 font-semibold text-secondary">Conf. Sup. (MW)</th>
-                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Intervalle</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Confiance</th>
                                     <th className="text-center py-3 px-4 font-semibold text-secondary">Statut</th>
                                     <th className="text-center py-3 px-4 font-semibold text-secondary">Action</th>
                                 </tr>
