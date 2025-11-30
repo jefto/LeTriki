@@ -1,14 +1,11 @@
 import { useState } from "react";
 import { CiCalendarDate } from "react-icons/ci";
-import { GiCrystalBall } from "react-icons/gi";
 import { FaFileExport, FaFileExcel, FaFileCsv, FaFileImage, FaChartLine, FaHistory, FaDownload } from "react-icons/fa";
 import { MdShowChart } from "react-icons/md";
 import Plot from 'react-plotly.js';
 
 export default function Prevision24h() {
-    const [selectedDate, setSelectedDate] = useState('2025-12-26');
     const [selectedModel, setSelectedModel] = useState('LSTM');
-    const [confidence, setConfidence] = useState(95);
 
     // Données pour le graphique 24h
     const hourlyData = {
@@ -95,70 +92,27 @@ export default function Prevision24h() {
                 <div className="h-1 w-24 bg-gradient-to-r from-secondary to-tertiary rounded-full"></div>
             </div>
 
-            {/* Formulaire de génération */}
+            {/* Sélection de l'horizon temporel */}
             <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 mb-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="max-w-md">
                     {/* Horizon temporel*/}
                     <div>
                         <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
                             <CiCalendarDate className="text-secondary text-xl" />
                             Horizon Temporel
                         </label>
-                        {/*<input*/}
-                        {/*    type="date"*/}
-                        {/*    value={selectedDate}*/}
-                        {/*    onChange={(e) => setSelectedDate(e.target.value)}*/}
-                        {/*    className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"*/}
-                        {/*/>*/}
                         <select
                             value={selectedModel}
                             onChange={(e) => setSelectedModel(e.target.value)}
                             className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-secondary/50"
                         >
-                            <option value="24h">24h par défaut</option>
-                            <option value="Semaine">Semaine</option>
+                            <option value="Journaliere">Journalière (24h)</option>
+                            <option value="Hebdomadaire">Hebdomadaire</option>
                             <option value="Mensuel">Mensuel</option>
+                            <option value="Annuel">Annuel</option>
                         </select>
-                    </div>
-
-                    {/* Modèle */}
-                    <div>
-                        <label className="block text-white/80 font-semibold mb-2">
-                            Modèle de Prévision
-                        </label>
-                        <select
-                            value={selectedModel}
-                            onChange={(e) => setSelectedModel(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-secondary/50"
-                        >
-                            <option value="LSTM">LSTM</option>
-                            <option value="GRU">GRU</option>
-                            <option value="ARIMA">ARIMA</option>
-                            <option value="Prophet">Prophet</option>
-                        </select>
-                    </div>
-
-                    {/* Intervalle de confiance */}
-                    <div>
-                        <label className="block text-white/80 font-semibold mb-2">
-                            Intervalle de confiance (%)
-                        </label>
-                        <input
-                            type="number"
-                            value={confidence}
-                            onChange={(e) => setConfidence(e.target.value)}
-                            min="80"
-                            max="99"
-                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"
-                        />
                     </div>
                 </div>
-
-                {/* Bouton Générer */}
-                <button className="mt-6 w-full md:w-auto bg-gradient-to-r from-primary to-red-600 hover:from-primary/90 hover:to-red-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3">
-                    <GiCrystalBall className="text-2xl" />
-                    Générer Prévision
-                </button>
             </div>
 
             {/* Graphique de la courbe de charge */}
