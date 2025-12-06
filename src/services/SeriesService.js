@@ -1,5 +1,10 @@
-import api from "./api";
-import {format} from 'date-fns'
+/*
+* Rôle : Renvoie la série de consommation sur une période au pas choisi, prête à tracer.
+* */
+
+
+import { api } from "./api";
+import { format } from 'date-fns';
 
 const SeriesService = {
 
