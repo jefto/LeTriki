@@ -3,6 +3,7 @@ import { FaDownload, FaFileCsv, FaFileExcel, FaFileExport, FaFileImage, FaHistor
 import { MdShowChart } from "react-icons/md";
 import { BsCalendarDate } from "react-icons/bs";
 import Plot from 'react-plotly.js';
+import { format } from 'date-fns';
 import { useSeries } from '../hooks/useSeries';
 import {
     transformSeriesData,
@@ -14,9 +15,9 @@ export default function AnalyseHistorique() {
     // Hook pour récupérer les données API
     const { series, loading, error, fetchSeries } = useSeries();
 
-    // États pour les nouveaux filtres
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
+    // États pour les filtres - Dates par défaut: dernière semaine de Décembre 2017
+    const [startDate, setStartDate] = useState('2017-12-25'); // Format interne YYYY-MM-DD
+    const [endDate, setEndDate] = useState('2017-12-31');
     const [resample, setResample] = useState('D'); // Par défaut : journalier
     const [typeConsommation, setTypeConsommation] = useState('CONSOMMATION_TOTALE');
 
@@ -25,6 +26,17 @@ export default function AnalyseHistorique() {
     const [rawData, setRawData] = useState([]);
     const [statistics, setStatistics] = useState(null);
     const [showGraph, setShowGraph] = useState(false);
+
+    // Fonction pour convertir une date du format interne (YYYY-MM-DD) vers l'affichage (DD-MM-YYYY)
+    const formatDateForDisplay = (dateString) => {
+        if (!dateString) return '';
+        try {
+            const date = new Date(dateString);
+            return format(date, 'dd-MM-yyyy');
+        } catch {
+            return dateString;
+        }
+    };
 
     // Fonction pour charger les données depuis l'API
     const handleSearch = async () => {
@@ -176,14 +188,14 @@ export default function AnalyseHistorique() {
                 type: 'scatter',
                 mode: 'lines+markers',
                 name: 'Consommation',
-                line: { color: '#E9FA00', width: 3 },
+                line: { color: '#E3001B', width: 3 },
                 marker: {
-                    color: '#E9FA00',
+                    color: '#E3001B',
                     size: 8,
-                    line: { color: '#1e3a8a', width: 2 }
+                    line: { color: '#FDB913', width: 2 }
                 },
                 fill: 'tonexty',
-                fillcolor: 'rgba(233, 250, 0, 0.1)',
+                fillcolor: 'rgba(227, 0, 27, 0.1)',
                 hovertemplate: '<b>%{x}</b><br>Consommation: %{y:.1f} MW<extra></extra>'
             }];
 
@@ -240,121 +252,127 @@ export default function AnalyseHistorique() {
     };
 
     const ChartCard = ({ title, children, icon }) => (
-        <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 hover:shadow-2xl hover:border-secondary/50 transition-all duration-300">
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
             <div className="flex items-center gap-3 mb-6">
-                <div className="text-secondary text-2xl">
+                <div className="text-[#E3001B] text-2xl">
                     {icon}
                 </div>
-                <h3 className="text-white font-bold text-xl font-poppins">{title}</h3>
+                <h3 className="text-gray-900 font-bold text-xl font-poppins">{title}</h3>
             </div>
             {children}
         </div>
     );
 
     return (
-        <div className="p-8 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+        <div className="p-8 bg-[#F8F9FA] min-h-screen">
             {/* Header */}
             <div className="mb-8">
-                <p className="text-tertiary/70 text-lg font-poppins mb-2">Exploration et analyse des données historiques</p>
-                <h1 className="text-5xl font-poppins font-bold bg-gradient-to-r from-tertiary to-blue-600 bg-clip-text text-transparent mb-2">
+                <p className="text-gray-500 text-lg font-poppins mb-2">Exploration et analyse des données historiques</p>
+                <h1 className="text-5xl font-poppins font-bold text-gray-900 mb-2">
                     Analyse Historique
                 </h1>
-                <div className="h-1 w-24 bg-gradient-to-r from-secondary to-tertiary rounded-full"></div>
+                <div className="h-1 w-24 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
             </div>
 
             {/* Formulaire de recherche */}
-            <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 mb-8">
-                <h2 className="text-white font-bold text-xl font-poppins mb-6 flex items-center gap-2">
-                    <FaSearch className="text-secondary" />
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 mb-8">
+                <h2 className="text-gray-900 font-bold text-xl font-poppins mb-6 flex items-center gap-2">
+                    <FaSearch className="text-[#E3001B]" />
                     Recherche de données
                 </h2>
 
                 {/* Période : Date début et fin */}
                 <div className="mb-6">
-                    <h3 className="text-white/80 font-semibold mb-3">Période</h3>
+                    <h3 className="text-gray-700 font-semibold mb-3">Période</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Date de début */}
                         <div>
-                            <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
-                                <BsCalendarDate className="text-secondary text-xl" />
+                            <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2">
+                                <BsCalendarDate className="text-[#E3001B] text-xl" />
                                 Date de début
                             </label>
                             <input
                                 type="date"
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"
+                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
                             />
+                            <p className="text-gray-400 text-sm mt-1">
+                                {startDate ? `📅 ${formatDateForDisplay(startDate)}` : 'Format: JJ-MM-AAAA'}
+                            </p>
                         </div>
 
                         {/* Date de fin */}
                         <div>
-                            <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
-                                <BsCalendarDate className="text-secondary text-xl" />
+                            <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2">
+                                <BsCalendarDate className="text-[#E3001B] text-xl" />
                                 Date de fin
                             </label>
                             <input
                                 type="date"
                                 value={endDate}
                                 onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-secondary/50"
+                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
                             />
+                            <p className="text-gray-400 text-sm mt-1">
+                                {endDate ? `📅 ${formatDateForDisplay(endDate)}` : 'Format: JJ-MM-AAAA'}
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 {/* Intervalle de période */}
                 <div className="mb-6">
-                    <h3 className="text-white/80 font-semibold mb-3">Intervalle de période</h3>
+                    <h3 className="text-gray-700 font-semibold mb-3">Intervalle de période</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {/* Par 30 minutes */}
-                        <label className={`flex items-center gap-3 text-white cursor-pointer bg-black/10 p-3 rounded-lg hover:bg-black/20 transition-all ${resample === '30min' ? 'bg-secondary/20 border-2 border-secondary' : ''}`}>
+                        <label className={`flex items-center gap-3 text-gray-700 cursor-pointer bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all border ${resample === '30min' ? 'bg-red-50 border-2 border-[#E3001B] text-[#E3001B]' : 'border-gray-200'}`}>
                             <input
                                 type="radio"
                                 name="resample"
                                 value="30min"
                                 checked={resample === '30min'}
                                 onChange={(e) => setResample(e.target.value)}
-                                className="w-5 h-5 accent-secondary cursor-pointer"
+                                className="w-5 h-5 accent-[#E3001B] cursor-pointer"
                             />
                             <span className="font-medium">Par 30 min</span>
                         </label>
 
                         {/* Par heure */}
-                        <label className={`flex items-center gap-3 text-white cursor-pointer bg-black/10 p-3 rounded-lg hover:bg-black/20 transition-all ${resample === 'H' ? 'bg-secondary/20 border-2 border-secondary' : ''}`}>
+                        <label className={`flex items-center gap-3 text-gray-700 cursor-pointer bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all border ${resample === 'H' ? 'bg-red-50 border-2 border-[#E3001B] text-[#E3001B]' : 'border-gray-200'}`}>
                             <input
                                 type="radio"
                                 name="resample"
                                 value="H"
                                 checked={resample === 'H'}
                                 onChange={(e) => setResample(e.target.value)}
-                                className="w-5 h-5 accent-secondary cursor-pointer"
+                                className="w-5 h-5 accent-[#E3001B] cursor-pointer"
                             />
                             <span className="font-medium">Par heure</span>
                         </label>
 
                         {/* Par jour */}
-                        <label className={`flex items-center gap-3 text-white cursor-pointer bg-black/10 p-3 rounded-lg hover:bg-black/20 transition-all ${resample === 'D' ? 'bg-secondary/20 border-2 border-secondary' : ''}`}>
+                        <label className={`flex items-center gap-3 text-gray-700 cursor-pointer bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all border ${resample === 'D' ? 'bg-red-50 border-2 border-[#E3001B] text-[#E3001B]' : 'border-gray-200'}`}>
                             <input
                                 type="radio"
                                 name="resample"
                                 value="D"
                                 checked={resample === 'D'}
                                 onChange={(e) => setResample(e.target.value)}
-                                className="w-5 h-5 accent-secondary cursor-pointer"
+                                className="w-5 h-5 accent-[#E3001B] cursor-pointer"
                             />
                             <span className="font-medium">Par jour</span>
                         </label>
 
                         {/* Par semaine */}
-                        <label className={`flex items-center gap-3 text-white cursor-pointer bg-black/10 p-3 rounded-lg hover:bg-black/20 transition-all ${resample === 'W' ? 'bg-secondary/20 border-2 border-secondary' : ''}`}>
+                        <label className={`flex items-center gap-3 text-gray-700 cursor-pointer bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all border ${resample === 'W' ? 'bg-red-50 border-2 border-[#E3001B] text-[#E3001B]' : 'border-gray-200'}`}>
                             <input
                                 type="radio"
                                 name="resample"
                                 value="W"
                                 checked={resample === 'W'}
                                 onChange={(e) => setResample(e.target.value)}
-                                className="w-5 h-5 accent-secondary cursor-pointer"
+                                className="w-5 h-5 accent-[#E3001B] cursor-pointer"
                             />
                             <span className="font-medium">Par semaine</span>
                         </label>
@@ -363,20 +381,20 @@ export default function AnalyseHistorique() {
 
                 {/* Type de consommation */}
                 <div className="mb-6">
-                    <h3 className="text-white/80 font-semibold mb-3">Type de consommation</h3>
+                    <h3 className="text-gray-700 font-semibold mb-3">Type de consommation</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label className="flex items-center gap-3 text-white cursor-pointer bg-black/10 p-3 rounded-lg hover:bg-black/20 transition-all">
+                        <label className="flex items-center gap-3 text-gray-700 cursor-pointer bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all border border-gray-200">
                             <input
                                 type="checkbox"
                                 checked={typeConsommation === 'CONSOMMATION_TOTALE'}
                                 onChange={(e) => setTypeConsommation(e.target.checked ? 'CONSOMMATION_TOTALE' : '')}
-                                className="w-5 h-5 accent-secondary cursor-pointer"
+                                className="w-5 h-5 accent-[#E3001B] cursor-pointer"
                             />
                             <span className="font-medium">Consommation Totale</span>
                         </label>
 
                         {/* Placeholder pour futurs types */}
-                        <div className="flex items-center gap-3 text-white/30 cursor-not-allowed bg-black/5 p-3 rounded-lg opacity-50">
+                        <div className="flex items-center gap-3 text-gray-400 cursor-not-allowed bg-gray-50 p-3 rounded-lg opacity-50 border border-gray-200">
                             <input
                                 type="checkbox"
                                 disabled
@@ -391,7 +409,7 @@ export default function AnalyseHistorique() {
                 <button
                     onClick={handleSearch}
                     disabled={!startDate || !endDate || loading}
-                    className="w-full md:w-auto bg-gradient-to-r from-primary to-red-600 hover:from-primary/90 hover:to-red-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full md:w-auto bg-[#E3001B] hover:bg-red-700 text-white font-bold py-3 px-8 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <FaSearch className="text-xl" />
                     {loading ? 'Chargement...' : 'Rechercher'}
@@ -400,7 +418,7 @@ export default function AnalyseHistorique() {
 
             {/* Message d'erreur */}
             {error && (
-                <div className="bg-red-500/20 border border-red-500 text-red-200 px-6 py-4 rounded-xl mb-8">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl mb-8">
                     <p className="font-semibold">⚠️ Erreur: {error}</p>
                 </div>
             )}
@@ -409,8 +427,8 @@ export default function AnalyseHistorique() {
             {loading && (
                 <div className="flex justify-center items-center py-20">
                     <div className="text-center">
-                        <FaSpinner className="animate-spin text-secondary text-6xl mx-auto mb-4" />
-                        <p className="text-tertiary text-xl font-semibold">Chargement des données...</p>
+                        <FaSpinner className="animate-spin text-[#E3001B] text-6xl mx-auto mb-4" />
+                        <p className="text-gray-600 text-xl font-semibold">Chargement des données...</p>
                     </div>
                 </div>
             )}
@@ -418,17 +436,17 @@ export default function AnalyseHistorique() {
             {/* Statistiques dynamiques */}
             {showGraph && statistics && !loading && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 hover:shadow-2xl hover:border-secondary/50 transition-all duration-300">
-                        <h2 className="text-white/80 font-semibold mb-2 text-sm">Moyenne</h2>
-                        <p className="text-white font-bold text-3xl font-poppins">{statistics.moyenne} <span className="text-lg text-secondary">MW</span></p>
+                    <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
+                        <h2 className="text-gray-500 font-semibold mb-2 text-sm">Moyenne</h2>
+                        <p className="text-gray-900 font-bold text-3xl font-poppins">{statistics.moyenne} <span className="text-lg text-[#E3001B]">MW</span></p>
                     </div>
-                    <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 hover:shadow-2xl hover:border-secondary/50 transition-all duration-300">
-                        <h2 className="text-white/80 font-semibold mb-2 text-sm">Écart-type</h2>
-                        <p className="text-white font-bold text-3xl font-poppins">{statistics.ecartType} <span className="text-lg text-secondary">MW</span></p>
+                    <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
+                        <h2 className="text-gray-500 font-semibold mb-2 text-sm">Écart-type</h2>
+                        <p className="text-gray-900 font-bold text-3xl font-poppins">{statistics.ecartType} <span className="text-lg text-[#FDB913]">MW</span></p>
                     </div>
-                    <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 hover:shadow-2xl hover:border-secondary/50 transition-all duration-300">
-                        <h2 className="text-white/80 font-semibold mb-2 text-sm">Pic Maximum</h2>
-                        <p className="text-white font-bold text-3xl font-poppins">{statistics.picMax} <span className="text-lg text-secondary">MW</span></p>
+                    <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
+                        <h2 className="text-gray-500 font-semibold mb-2 text-sm">Pic Maximum</h2>
+                        <p className="text-gray-900 font-bold text-3xl font-poppins">{statistics.picMax} <span className="text-lg text-[#E3001B]">MW</span></p>
                     </div>
                 </div>
             )}
@@ -445,19 +463,19 @@ export default function AnalyseHistorique() {
                     >
                         {/* Boutons d'export */}
                         <div className="flex items-center gap-2 mb-4 flex-wrap">
-                            <span className="text-white/70 flex items-center gap-2">
+                            <span className="text-gray-500 flex items-center gap-2">
                                 <FaFileExport />
                                 Export :
                             </span>
-                            <button className="bg-black/20 hover:bg-black/30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-white/10">
+                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200">
                                 <FaFileImage />
                                 PNG
                             </button>
-                            <button className="bg-black/20 hover:bg-black/30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-white/10">
+                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200">
                                 <FaFileCsv />
                                 CSV
                             </button>
-                            <button className="bg-black/20 hover:bg-black/30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-white/10">
+                            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
                                 <FaFileExcel />
                                 Excel
                             </button>
@@ -465,11 +483,11 @@ export default function AnalyseHistorique() {
 
                         {/* Message pour fonctionnalités désactivées */}
                         {visualization.type === 'message' ? (
-                            <div className="bg-black/20 rounded-xl p-8 text-center border border-white/10">
-                                <FaHistory className="text-secondary text-6xl mx-auto mb-4" />
-                                <h3 className="text-white text-xl font-bold mb-2">{visualization.title}</h3>
-                                <p className="text-white/70 text-lg">{visualization.message}</p>
-                                <p className="text-white/50 text-sm mt-4">Le backend sera mis à jour prochainement</p>
+                            <div className="bg-gray-50 rounded-xl p-8 text-center border border-gray-200">
+                                <FaHistory className="text-[#E3001B] text-6xl mx-auto mb-4" />
+                                <h3 className="text-gray-900 text-xl font-bold mb-2">{visualization.title}</h3>
+                                <p className="text-gray-600 text-lg">{visualization.message}</p>
+                                <p className="text-gray-400 text-sm mt-4">Le backend sera mis à jour prochainement</p>
                             </div>
                         ) : (
                             /* Graphique Plotly */
@@ -519,19 +537,19 @@ export default function AnalyseHistorique() {
                     >
                         {/* Tableau */}
                         <div className="overflow-x-auto">
-                            <table className="w-full text-white">
+                            <table className="w-full text-gray-700">
                                 <thead>
-                                    <tr className="border-b border-white/20">
-                                        <th className="text-left py-3 px-4 font-semibold text-secondary">Période</th>
-                                        <th className="text-right py-3 px-4 font-semibold text-secondary">Consommation (MW)</th>
-                                        <th className="text-center py-3 px-4 font-semibold text-secondary">Action</th>
+                                    <tr className="border-b border-gray-200">
+                                        <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Période</th>
+                                        <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Consommation (MW)</th>
+                                        <th className="text-center py-3 px-4 font-semibold text-[#E3001B]">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {rawData.slice(0, 20).map((row, index) => (
-                                        <tr key={index} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                        <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                             <td className="py-3 px-4 font-medium">{row.periode}</td>
-                                            <td className="py-3 px-4 text-right font-bold text-secondary">{row.consommation}</td>
+                                            <td className="py-3 px-4 text-right font-bold text-[#E3001B]">{row.consommation}</td>
                                             <td className="py-3 px-4 text-center">
                                                 <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-2 mx-auto">
                                                     <FaDownload className="text-sm" />
@@ -543,7 +561,7 @@ export default function AnalyseHistorique() {
                                 </tbody>
                             </table>
                             {rawData.length > 20 && (
-                                <div className="mt-4 text-center text-white/60 text-sm">
+                                <div className="mt-4 text-center text-gray-500 text-sm">
                                     Affichage de 20 lignes sur {rawData.length} au total
                                 </div>
                             )}

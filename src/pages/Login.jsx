@@ -23,7 +23,7 @@ export default function Login() {
                             alt="Logo Triki Rouge"
                             className="w-48 mx-auto mb-6"
                         />
-                        <p className="text-tertiary text-center text-sm font-medium leading-relaxed">
+                        <p className="text-gray-700 text-center text-sm font-medium leading-relaxed">
                             Plateforme d'analyse et de prevision énergetique
                             Compagnie d'Energie Electrique du Togo
 
@@ -46,30 +46,30 @@ export default function Login() {
                         />
                     </div>
 
-                    <h1 className="text-4xl font-bold text-primary text-center mb-2">CONNEXION</h1>
-                    <p className="text-tertiary text-center font-semibold mb-10">Welcome back</p>
+                    <h1 className="text-4xl font-bold text-[#E3001B] text-center mb-2">CONNEXION</h1>
+                    <p className="text-gray-700 text-center font-semibold mb-10">Welcome back</p>
 
                     {/* Nom d'utilisateur */}
                     <div className="mb-6">
-                        <label className="block text-tertiary font-semibold mb-2">
+                        <label className="block text-gray-700 font-semibold mb-2">
                             Nom d'utilisateur
                         </label>
                         <input
                             type="text"
-                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-tertiary/50 focus:border-tertiary"
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/30 focus:border-[#E3001B]"
                             placeholder="Entrez votre nom d'utilisateur"
                         />
                     </div>
 
                     {/* Mot de passe */}
                     <div className="mb-4">
-                        <label className="block text-tertiary font-semibold mb-2">
+                        <label className="block text-gray-700 font-semibold mb-2">
                             Mot de passe
                         </label>
                         <div className="relative">
                             <input
                                 type={showPassword ? "text" : "password"}
-                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-tertiary/50 focus:border-tertiary pr-12"
+                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-300 text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/30 focus:border-[#E3001B] pr-12"
                                 placeholder="Entrez votre mot de passe"
                             />
                             <button
@@ -88,13 +88,13 @@ export default function Login() {
 
                     {/* Mot de passe oublié */}
                     <div className="flex justify-end mb-8">
-                        <button className="text-sm text-tertiary hover:text-primary transition-colors">
+                        <button className="text-sm text-gray-600 hover:text-[#E3001B] transition-colors">
                             Mot de passe oublié ?
                         </button>
                     </div>
 
                     {/* Bouton de connexion */}
-                    <button className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl">
+                    <button className="w-full bg-[#E3001B] hover:bg-red-700 text-white font-bold py-3 px-6 rounded-2xl transition-all duration-300 shadow-lg hover:shadow-xl">
                         Connexion
                     </button>
                 </div>

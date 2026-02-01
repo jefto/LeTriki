@@ -367,10 +367,11 @@ export const formatDate = (date, format = 'long') => {
 
 // ============================================
 // CONFIGURATION PLOTLY (à utiliser dans le frontend)
+// Light/Corporate Mode - Charte graphique CEET
 // ============================================
 
 /**
- * Configuration de layout Plotly réutilisable
+ * Configuration de layout Plotly réutilisable - Light Mode
  * @param {String} title - Titre du graphique
  * @param {String} xAxisTitle - Titre de l'axe X
  * @param {String} yAxisTitle - Titre de l'axe Y
@@ -380,29 +381,31 @@ export const getPlotlyLayout = (title, xAxisTitle = '', yAxisTitle = 'Consommati
     return {
         title: {
             text: title,
-            font: { color: 'white', size: 18, family: 'Poppins' }
+            font: { color: '#1F2937', size: 18, family: 'Poppins' }
         },
-        paper_bgcolor: 'transparent',
-        plot_bgcolor: 'transparent',
-        font: { color: 'white', family: 'Poppins' },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+        font: { color: '#1F2937', family: 'Poppins' },
         xaxis: {
-            gridcolor: 'rgba(255,255,255,0.1)',
-            zerolinecolor: 'rgba(255,255,255,0.2)',
+            gridcolor: '#E5E7EB',
+            zerolinecolor: '#D1D5DB',
             title: xAxisTitle,
-            titlefont: { size: 14 }
+            titlefont: { size: 14, color: '#6B7280' },
+            tickfont: { color: '#6B7280' }
         },
         yaxis: {
-            gridcolor: 'rgba(255,255,255,0.1)',
-            zerolinecolor: 'rgba(255,255,255,0.2)',
+            gridcolor: '#E5E7EB',
+            zerolinecolor: '#D1D5DB',
             title: yAxisTitle,
-            titlefont: { size: 14 }
+            titlefont: { size: 14, color: '#6B7280' },
+            tickfont: { color: '#6B7280' }
         },
         legend: {
             orientation: 'h',
             y: -0.15,
             x: 0.5,
             xanchor: 'center',
-            font: { color: 'white', size: 12 }
+            font: { color: '#1F2937', size: 12 }
         },
         margin: { t: 60, r: 40, b: 80, l: 80 },
         showlegend: true,
@@ -411,13 +414,14 @@ export const getPlotlyLayout = (title, xAxisTitle = '', yAxisTitle = 'Consommati
 };
 
 /**
- * Couleurs réutilisables pour les graphiques
+ * Couleurs CEET pour les graphiques - Light/Corporate Mode
  */
 export const CHART_COLORS = {
-    primary: '#E9FA00',      // Jaune (secondary dans votre thème)
-    blue: '#60A5FA',         // Bleu
-    red: '#FF6B6B',          // Rouge
-    turquoise: '#4ECDC4',    // Turquoise
-    cyan: '#45B7D1',         // Cyan
-    dark: '#1e3a8a'          // Bleu foncé (tertiary)
+    primary: '#E3001B',      // Rouge CEET (principal)
+    secondary: '#FDB913',    // Jaune/Orange CEET (secondaire)
+    success: '#10B981',      // Vert
+    warning: '#F59E0B',      // Orange avertissement
+    danger: '#EF4444',       // Rouge erreur
+    gray: '#6B7280',         // Gris
+    lightGray: '#E5E7EB'     // Gris clair
 };

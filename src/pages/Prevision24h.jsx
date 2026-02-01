@@ -59,52 +59,52 @@ export default function Prevision24h() {
     const getStatusStyle = (statut) => {
         switch (statut) {
             case 'Normal':
-                return 'bg-green-500/20 text-green-400 border-green-500/30';
+                return 'bg-green-100 text-green-700 border-green-300';
             case 'Pic Matin':
-                return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+                return 'bg-orange-100 text-orange-700 border-orange-300';
             case 'Pic Soir':
-                return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+                return 'bg-red-100 text-red-700 border-red-300';
             default:
-                return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+                return 'bg-gray-100 text-gray-700 border-gray-300';
         }
     };
 
     const ChartCard = ({ title, children, icon }) => (
-        <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 hover:shadow-2xl hover:border-secondary/50 transition-all duration-300">
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
             <div className="flex items-center gap-3 mb-6">
-                <div className="text-secondary text-2xl">
+                <div className="text-[#E3001B] text-2xl">
                     {icon}
                 </div>
-                <h3 className="text-white font-bold text-xl font-poppins">{title}</h3>
+                <h3 className="text-gray-900 font-bold text-xl font-poppins">{title}</h3>
             </div>
             {children}
         </div>
     );
 
     return (
-        <div className="p-8 bg-gradient-to-br from-gray-50 to-blue-50 min-h-screen">
+        <div className="p-8 bg-[#F8F9FA] min-h-screen">
             {/* Header */}
             <div className="mb-8">
-                <p className="text-tertiary/70 text-lg font-poppins mb-2">Génération et analyse des prévisions</p>
-                <h1 className="text-5xl font-poppins font-bold bg-gradient-to-r from-tertiary to-blue-600 bg-clip-text text-transparent mb-2">
+                <p className="text-gray-500 text-lg font-poppins mb-2">Génération et analyse des prévisions</p>
+                <h1 className="text-5xl font-poppins font-bold text-gray-900 mb-2">
                     Prévision 24h
                 </h1>
-                <div className="h-1 w-24 bg-gradient-to-r from-secondary to-tertiary rounded-full"></div>
+                <div className="h-1 w-24 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
             </div>
 
             {/* Sélection de l'horizon temporel */}
-            <div className="bg-gradient-to-br from-tertiary to-blue-800 p-6 rounded-2xl shadow-xl border border-blue-400/30 mb-8">
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 mb-8">
                 <div className="max-w-md">
                     {/* Horizon temporel*/}
                     <div>
-                        <label className="flex items-center gap-2 text-white/80 font-semibold mb-2">
-                            <CiCalendarDate className="text-secondary text-xl" />
+                        <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2">
+                            <CiCalendarDate className="text-[#E3001B] text-xl" />
                             Horizon Temporel
                         </label>
                         <select
                             value={selectedModel}
                             onChange={(e) => setSelectedModel(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl bg-black/20 backdrop-blur-sm border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-secondary/50"
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
                         >
                             <option value="Journaliere">Journalière (24h)</option>
                             <option value="Hebdomadaire">Hebdomadaire</option>
@@ -122,19 +122,19 @@ export default function Prevision24h() {
             >
                 {/* Boutons d'export */}
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
-                    <span className="text-white/70 flex items-center gap-2">
+                    <span className="text-gray-500 flex items-center gap-2">
                         <FaFileExport />
                         Export :
                     </span>
-                    <button className="bg-black/20 hover:bg-black/30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-white/10">
+                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200">
                         <FaFileImage />
                         PNG
                     </button>
-                    <button className="bg-black/20 hover:bg-black/30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-white/10">
+                    <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200">
                         <FaFileCsv />
                         CSV
                     </button>
-                    <button className="bg-black/20 hover:bg-black/30 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-white/10">
+                    <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
                         <FaFileExcel />
                         Excel
                     </button>
@@ -149,8 +149,8 @@ export default function Prevision24h() {
                             type: 'scatter',
                             mode: 'lines+markers',
                             name: 'Prévision',
-                            line: { color: '#E9FA00', width: 4 },
-                            marker: { color: '#E9FA00', size: 8 },
+                            line: { color: '#E3001B', width: 4 },
+                            marker: { color: '#E3001B', size: 8 },
                         },
                         {
                             x: hourlyData.x,
@@ -158,9 +158,9 @@ export default function Prevision24h() {
                             type: 'scatter',
                             mode: 'lines',
                             name: 'Conf. Sup.',
-                            line: { color: '#60A5FA', width: 2, dash: 'dash' },
+                            line: { color: '#FDB913', width: 2, dash: 'dash' },
                             fill: 'tonexty',
-                            fillcolor: 'rgba(96, 165, 250, 0.1)'
+                            fillcolor: 'rgba(253, 185, 19, 0.1)'
                         },
                         {
                             x: hourlyData.x,
@@ -168,29 +168,31 @@ export default function Prevision24h() {
                             type: 'scatter',
                             mode: 'lines',
                             name: 'Conf. Inf.',
-                            line: { color: '#60A5FA', width: 2, dash: 'dash' },
+                            line: { color: '#FDB913', width: 2, dash: 'dash' },
                         }
                     ]}
                     layout={{
-                        paper_bgcolor: 'transparent',
-                        plot_bgcolor: 'transparent',
-                        font: { color: 'white', family: 'Poppins' },
+                        paper_bgcolor: 'rgba(0,0,0,0)',
+                        plot_bgcolor: 'rgba(0,0,0,0)',
+                        font: { color: '#1F2937', family: 'Poppins' },
                         xaxis: {
-                            gridcolor: 'rgba(255,255,255,0.1)',
-                            zerolinecolor: 'rgba(255,255,255,0.2)',
-                            title: 'Heure'
+                            gridcolor: '#E5E7EB',
+                            zerolinecolor: '#D1D5DB',
+                            title: 'Heure',
+                            tickfont: { color: '#6B7280' }
                         },
                         yaxis: {
-                            gridcolor: 'rgba(255,255,255,0.1)',
-                            zerolinecolor: 'rgba(255,255,255,0.2)',
-                            title: 'Consommation (MW)'
+                            gridcolor: '#E5E7EB',
+                            zerolinecolor: '#D1D5DB',
+                            title: 'Consommation (MW)',
+                            tickfont: { color: '#6B7280' }
                         },
                         legend: {
                             orientation: 'h',
                             y: -0.15,
                             x: 0.5,
                             xanchor: 'center',
-                            font: { color: 'white', size: 14 }
+                            font: { color: '#1F2937', size: 14 }
                         },
                         margin: { t: 30, r: 40, b: 80, l: 80 },
                         showlegend: true
@@ -208,7 +210,7 @@ export default function Prevision24h() {
                 >
                     {/* Bouton export Excel */}
                     <div className="flex justify-end mb-4">
-                        <button className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+                        <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
                             <FaFileExcel />
                             Exporter Excel
                         </button>
@@ -216,27 +218,27 @@ export default function Prevision24h() {
 
                     {/* Tableau */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-white">
+                        <table className="w-full text-gray-700">
                             <thead>
-                                <tr className="border-b border-white/20">
-                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Heure</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-secondary">Prévision (MW)</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-secondary">Conf. Sup. (MW)</th>
-                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Confiance</th>
-                                    <th className="text-center py-3 px-4 font-semibold text-secondary">Statut</th>
+                                <tr className="border-b border-gray-200">
+                                    <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Heure</th>
+                                    <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Prévision (MW)</th>
+                                    <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Conf. Sup. (MW)</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Confiance</th>
+                                    <th className="text-center py-3 px-4 font-semibold text-[#E3001B]">Statut</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {detailedData.map((row, index) => (
-                                    <tr key={index} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                         <td className="py-3 px-4 font-medium">{row.heure}</td>
                                         <td className="py-3 px-4 text-right font-bold">{row.prevision}</td>
                                         <td className="py-3 px-4 text-right">{row.confSup}</td>
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                                                <div className="flex-1 bg-gray-200 rounded-full h-2.5 overflow-hidden">
                                                     <div
-                                                        className="bg-gradient-to-r from-secondary to-green-400 h-2.5 rounded-full transition-all duration-500"
+                                                        className="bg-gradient-to-r from-[#E3001B] to-[#FDB913] h-2.5 rounded-full transition-all duration-500"
                                                         style={{ width: `${row.confiance}%` }}
                                                     ></div>
                                                 </div>
@@ -264,28 +266,28 @@ export default function Prevision24h() {
                 >
                     {/* Tableau */}
                     <div className="overflow-x-auto">
-                        <table className="w-full text-white">
+                        <table className="w-full text-gray-700">
                             <thead>
-                                <tr className="border-b border-white/20">
-                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Date</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-secondary">Prévision (MW)</th>
-                                    <th className="text-right py-3 px-4 font-semibold text-secondary">Conf. Sup. (MW)</th>
-                                    <th className="text-left py-3 px-4 font-semibold text-secondary">Confiance</th>
-                                    <th className="text-center py-3 px-4 font-semibold text-secondary">Statut</th>
-                                    <th className="text-center py-3 px-4 font-semibold text-secondary">Action</th>
+                                <tr className="border-b border-gray-200">
+                                    <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Date</th>
+                                    <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Prévision (MW)</th>
+                                    <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Conf. Sup. (MW)</th>
+                                    <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Confiance</th>
+                                    <th className="text-center py-3 px-4 font-semibold text-[#E3001B]">Statut</th>
+                                    <th className="text-center py-3 px-4 font-semibold text-[#E3001B]">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {historiqueData.map((row, index) => (
-                                    <tr key={index} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                         <td className="py-3 px-4 font-medium">{row.date}</td>
                                         <td className="py-3 px-4 text-right font-bold">{row.prevision}</td>
                                         <td className="py-3 px-4 text-right">{row.confSup}</td>
                                         <td className="py-3 px-4">
                                             <div className="flex items-center gap-2">
-                                                <div className="flex-1 bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                                                <div className="flex-1 bg-gray-200 rounded-full h-2.5 overflow-hidden">
                                                     <div
-                                                        className="bg-gradient-to-r from-secondary to-green-400 h-2.5 rounded-full transition-all duration-500"
+                                                        className="bg-gradient-to-r from-[#E3001B] to-[#FDB913] h-2.5 rounded-full transition-all duration-500"
                                                         style={{ width: `${row.confiance}%` }}
                                                     ></div>
                                                 </div>

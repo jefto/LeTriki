@@ -27,8 +27,19 @@ export const useSeries = () => {
                 console.log('✅ response.data existe');
                 console.log('📊 Type de response.data:', typeof response.data);
                 console.log('📊 Clés de response.data:', Object.keys(response.data));
-                console.log('📊 response.data.timestamps:', response.data.timestamps?.length, 'éléments');
-                console.log('📊 response.data.values:', response.data.values?.length, 'éléments');
+
+                // Vérifier la structure des données
+                const hasTimeIndex = response.data.time_index !== undefined;
+                const hasY = response.data.y !== undefined;
+                const hasTimestamps = response.data.timestamps !== undefined;
+                const hasValues = response.data.values !== undefined;
+
+                console.log('📊 Structure détectée:', {
+                    hasTimeIndex,
+                    hasY,
+                    hasTimestamps,
+                    hasValues
+                });
 
                 setSeries(response.data);
                 console.log('✅ setSeries appelé avec response.data');
@@ -41,14 +52,20 @@ export const useSeries = () => {
             console.error('❌ ===== ERREUR dans useSeries.fetchSeries =====');
             console.error('❌ Type:', err.name);
             console.error('❌ Message:', err.message);
-            console.error('❌ Stack:', err.stack);
+
+            let errorMessage = 'Erreur lors de la récupération des séries';
 
             if (err.response) {
                 console.error('❌ HTTP Status:', err.response.status);
                 console.error('❌ HTTP Data:', err.response.data);
+                errorMessage = `Erreur serveur (${err.response.status}): ${err.response.data?.detail || err.response.statusText}`;
+            } else if (err.request) {
+                console.error('❌ Pas de réponse du serveur');
+                errorMessage = 'Impossible de se connecter au serveur. Vérifiez que le serveur API est démarré.';
+            } else {
+                errorMessage = err.message || errorMessage;
             }
 
-            const errorMessage = err.message || 'Erreur lors de la récupération des séries';
             setError(errorMessage);
             throw err;
         } finally {

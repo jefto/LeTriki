@@ -12,13 +12,13 @@ export default function SideBar() {
     ];
 
     return (
-        <div className="w-72 bg-gradient-to-b from-tertiary to-blue-900 text-white h-screen flex flex-col shadow-2xl">
+        <div className="w-72 bg-white h-screen flex flex-col border-r border-gray-200 shadow-sm">
             {/* Header */}
             <div className="p-6 pb-4">
-                <h1 className="text-3xl font-poppins font-bold text-Left mb-4 text-secondary">
+                <h1 className="text-3xl font-poppins font-bold text-left mb-4 text-[#E3001B]">
                     LeTriki
                 </h1>
-                <div className="w-full h-0.5 bg-white/30"></div>
+                <div className="w-full h-0.5 bg-gray-200"></div>
             </div>
 
             {/* Menu Items */}
@@ -28,16 +28,16 @@ export default function SideBar() {
                         key={item.path}
                         to={item.path}
                         className={({ isActive }) =>
-                            `flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group ${
+                            `flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 group relative ${
                                 isActive
-                                    ? 'bg-secondary text-tertiary shadow-lg font-semibold'
-                                    : 'text-white/80 hover:bg-white/10 hover:text-white hover:translate-x-1'
+                                    ? 'bg-red-50 text-[#E3001B] font-semibold border-l-4 border-[#E3001B]'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:translate-x-1'
                             }`
                         }
                     >
                         {({ isActive }) => (
                             <>
-                                <span className={isActive ? 'text-tertiary' : 'text-white/70 group-hover:text-white'}>
+                                <span className={isActive ? 'text-[#E3001B]' : 'text-gray-400 group-hover:text-gray-600'}>
                                     {item.icon}
                                 </span>
                                 <span className="font-poppins">{item.label}</span>
@@ -48,15 +48,15 @@ export default function SideBar() {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-white/20">
+            <div className="p-4 border-t border-gray-200">
                 <div className="flex items-center justify-between gap-24">
                     <NavLink
                         to="/parametres"
                         className={({ isActive }) =>
                             `flex items-center justify-center p-3 rounded-xl transition-all duration-300 ${
                                 isActive
-                                    ? 'bg-secondary text-tertiary shadow-lg'
-                                    : 'text-white/80 hover:bg-white/10 hover:text-white hover:scale-110'
+                                    ? 'bg-red-50 text-[#E3001B]'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700 hover:scale-110'
                             }`
                         }
                         title="Paramètres"
@@ -69,8 +69,8 @@ export default function SideBar() {
                         className={({ isActive }) =>
                             `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 flex-1 ${
                                 isActive
-                                    ? 'bg-secondary text-tertiary shadow-lg'
-                                    : 'text-white/80 hover:bg-white/10 hover:text-white'
+                                    ? 'bg-red-50 text-[#E3001B]'
+                                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                             }`
                         }
                     >
