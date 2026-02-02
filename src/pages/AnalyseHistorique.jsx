@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
-import { FaDownload, FaFileCsv, FaFileExcel, FaFileExport, FaFileImage, FaHistory, FaSearch, FaSpinner } from "react-icons/fa";
+import { useState, useEffect, useRef } from "react";
+import { FaFileCsv, FaFileExcel, FaFileExport, FaFileImage, FaHistory, FaSearch, FaSpinner } from "react-icons/fa";
 import { MdShowChart } from "react-icons/md";
 import { BsCalendarDate } from "react-icons/bs";
 import Plot from 'react-plotly.js';
+import Plotly from 'plotly.js-dist-min';
+import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { useSeries } from '../hooks/useSeries';
 import {
@@ -12,6 +14,9 @@ import {
 } from '../utils/dataTransformers';
 
 export default function AnalyseHistorique() {
+    // Référence pour le graphique Plotly (export PNG)
+    const plotlyRef = useRef(null);
+
     // Hook pour récupérer les données API
     const { series, loading, error, fetchSeries } = useSeries();
 
@@ -251,6 +256,91 @@ export default function AnalyseHistorique() {
         return null;
     };
 
+    // ========== FONCTIONS D'EXPORT ==========
+
+    /**
+     * Export du graphique en PNG via Plotly
+     */
+    const handleExportPNG = () => {
+        if (!plotlyRef.current || !plotlyRef.current.el) {
+            alert('Aucun graphique à exporter');
+            return;
+        }
+
+        Plotly.downloadImage(plotlyRef.current.el, {
+            format: 'png',
+            filename: `analyse_historique_${startDate}_${endDate}`,
+            width: 1200,
+            height: 600,
+            scale: 2
+        });
+    };
+
+    /**
+     * Export des données en CSV
+     */
+    const handleExportCSV = () => {
+        if (!rawData || rawData.length === 0) {
+            alert('Aucune donnée à exporter');
+            return;
+        }
+
+        const headers = ['Période', 'Consommation (MW)'];
+        const rows = rawData.map(row => [row.periode, row.consommation]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.join(','))
+        ].join('\n');
+
+        const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `analyse_historique_${startDate}_${endDate}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    /**
+     * Export des données en Excel via SheetJS (xlsx)
+     */
+    const handleExportExcel = () => {
+        if (!rawData || rawData.length === 0) {
+            alert('Aucune donnée à exporter');
+            return;
+        }
+
+        const excelData = rawData.map(row => ({
+            'Période': row.periode,
+            'Consommation (MW)': parseFloat(row.consommation)
+        }));
+
+        // Ajouter les statistiques
+        if (statistics) {
+            excelData.push({});
+            excelData.push({ 'Période': 'STATISTIQUES', 'Consommation (MW)': '' });
+            excelData.push({ 'Période': 'Moyenne', 'Consommation (MW)': parseFloat(statistics.moyenne) });
+            excelData.push({ 'Période': 'Écart-type', 'Consommation (MW)': parseFloat(statistics.ecartType) });
+            excelData.push({ 'Période': 'Pic Maximum', 'Consommation (MW)': parseFloat(statistics.picMax) });
+        }
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Analyse Historique');
+
+        worksheet['!cols'] = [
+            { wch: 25 },
+            { wch: 20 }
+        ];
+
+        XLSX.writeFile(workbook, `analyse_historique_${startDate}_${endDate}.xlsx`);
+    };
+
+    // ========== FIN FONCTIONS D'EXPORT ==========
+
     const ChartCard = ({ title, children, icon }) => (
         <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
             <div className="flex items-center gap-3 mb-6">
@@ -467,15 +557,24 @@ export default function AnalyseHistorique() {
                                 <FaFileExport />
                                 Export :
                             </span>
-                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200">
+                            <button
+                                onClick={handleExportPNG}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200"
+                            >
                                 <FaFileImage />
                                 PNG
                             </button>
-                            <button className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200">
+                            <button
+                                onClick={handleExportCSV}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200"
+                            >
                                 <FaFileCsv />
                                 CSV
                             </button>
-                            <button className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+                            <button
+                                onClick={handleExportExcel}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2"
+                            >
                                 <FaFileExcel />
                                 Excel
                             </button>
@@ -492,6 +591,7 @@ export default function AnalyseHistorique() {
                         ) : (
                             /* Graphique Plotly */
                             <Plot
+                                ref={plotlyRef}
                                 data={visualization.data}
                                 layout={{
                                     ...getPlotlyLayout('',
@@ -535,14 +635,24 @@ export default function AnalyseHistorique() {
                         title="Données brutes"
                         icon={<FaHistory />}
                     >
+                        {/* Bouton Export Excel au-dessus du tableau */}
+                        <div className="flex justify-end mb-4">
+                            <button
+                                onClick={handleExportExcel}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2"
+                            >
+                                <FaFileExcel />
+                                Exporter Excel
+                            </button>
+                        </div>
+
                         {/* Tableau */}
                         <div className="overflow-x-auto">
                             <table className="w-full text-gray-700">
                                 <thead>
-                                    <tr className="border-b border-gray-200">
+                                    <tr className="border-b-2 border-gray-200 bg-gray-50">
                                         <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Période</th>
                                         <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Consommation (MW)</th>
-                                        <th className="text-center py-3 px-4 font-semibold text-[#E3001B]">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -550,12 +660,6 @@ export default function AnalyseHistorique() {
                                         <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                                             <td className="py-3 px-4 font-medium">{row.periode}</td>
                                             <td className="py-3 px-4 text-right font-bold text-[#E3001B]">{row.consommation}</td>
-                                            <td className="py-3 px-4 text-center">
-                                                <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg transition-all duration-200 flex items-center gap-2 mx-auto">
-                                                    <FaDownload className="text-sm" />
-                                                    Excel
-                                                </button>
-                                            </td>
                                         </tr>
                                     ))}
                                 </tbody>

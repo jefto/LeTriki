@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import Plot from 'react-plotly.js';
 import {
     FaArrowUp,
-    FaClock, 
-    FaChartLine, 
+    FaChartLine,
     FaBolt,
     FaCalendarAlt,
     FaBrain,
-    FaSpinner
+    FaSpinner,
+    FaCheckCircle
 } from 'react-icons/fa';
 import { 
     MdShowChart,
     MdBarChart
 } from 'react-icons/md';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { ModelService } from '../services/ModelService';
 import { getPlotlyLayout } from '../utils/dataTransformers';
 
 export default function Dashboard() {
@@ -33,6 +34,27 @@ export default function Dashboard() {
     const [dailyCurveData, setDailyCurveData] = useState(null);
     const [weeklyHistData, setWeeklyHistData] = useState(null);
 
+    // États pour les données de prévision
+    const [modelMetrics, setModelMetrics] = useState(null);
+    const [nextPrediction, setNextPrediction] = useState(null);
+    const [predictionLoading, setPredictionLoading] = useState(false);
+    const [currentHour, setCurrentHour] = useState(new Date().getHours());
+
+    // Obtenir la prédiction pour la prochaine heure
+    const getNextHourPrediction = () => {
+        if (!nextPrediction || !nextPrediction.predictions) return null;
+
+        // Calculer la prochaine heure (si 23h -> 0h, sinon heure+1)
+        const nextHour = (currentHour + 1) % 24;
+
+        // Trouver la prédiction correspondante (hour dans l'API va de 1 à 24)
+        // hour=1 correspond à 01:00, hour=24 correspond à 00:00
+        const hourToFind = nextHour === 0 ? 24 : nextHour;
+        const prediction = nextPrediction.predictions.find(p => p.hour === hourToFind);
+
+        return prediction;
+    };
+
     // Charger les données au montage du composant
     useEffect(() => {
         const loadDashboardData = async () => {
@@ -47,7 +69,38 @@ export default function Dashboard() {
             }
         };
 
+        // Charger les métriques du modèle et la prochaine prévision
+        const loadPredictionData = async () => {
+            setPredictionLoading(true);
+            try {
+                // Charger les métriques du modèle
+                const metricsResponse = await ModelService.getModelMetrics();
+                if (metricsResponse.data) {
+                    setModelMetrics(metricsResponse.data);
+                }
+
+                // Charger la prochaine prévision (24 heures pour avoir toutes les heures)
+                const predictionParams = {
+                    measurement: 'dataset',
+                    field: 'CONSOMMATION_TOTALE',
+                    start: '2014-01-01T00:00:00Z',
+                    stop: '2019-10-07T00:00:00Z',
+                    lags: 72,
+                    horizon: 24
+                };
+                const predictionResponse = await ModelService.predictNextDay(predictionParams);
+                if (predictionResponse.data && predictionResponse.data.predictions) {
+                    setNextPrediction(predictionResponse.data);
+                }
+            } catch (err) {
+                console.error('Erreur lors du chargement des données de prévision:', err);
+            } finally {
+                setPredictionLoading(false);
+            }
+        };
+
         loadDashboardData();
+        loadPredictionData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -205,9 +258,17 @@ export default function Dashboard() {
                         />
                         <MetricCard
                             title="Prochaine Prédiction"
-                            value="--"
-                            subtitle="Module prévision en cours"
-                            icon={<FaClock />}
+                            value={(() => {
+                                const pred = getNextHourPrediction();
+                                if (pred) return `${pred.prediction.toFixed(2)} MW`;
+                                return predictionLoading ? "Chargement..." : "-- MW";
+                            })()}
+                            subtitle={(() => {
+                                const nextHour = (currentHour + 1) % 24;
+                                const nextHourStr = nextHour.toString().padStart(2, '0');
+                                return `Prévision pour ${nextHourStr}:00 (actuellement ${currentHour}:00)`;
+                            })()}
+                            icon={<FaBrain />}
                             iconColor="text-[#FDB913]"
                             iconBg="bg-yellow-50"
                         />
@@ -312,31 +373,56 @@ export default function Dashboard() {
                                 <div className="space-y-6">
                                     <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
                                         <h4 className="text-[#FDB913] font-semibold mb-4 flex items-center gap-2">
-                                            <FaArrowUp />
-                                            En développement
+                                            <FaCheckCircle />
+                                            {modelMetrics ? 'Modèle Actif' : predictionLoading ? 'Chargement...' : 'En attente'}
                                         </h4>
                                         <div className="space-y-4">
                                             <div className="flex justify-between items-center">
-                                                <span className="text-gray-500">Prochaine Prédiction</span>
-                                                <span className="text-gray-400 font-bold">--</span>
+                                                <span className="text-gray-500">Prochaine Heure ({((currentHour + 1) % 24).toString().padStart(2, '0')}:00)</span>
+                                                <span className="text-[#FDB913] font-bold">
+                                                    {(() => {
+                                                        const pred = getNextHourPrediction();
+                                                        return pred ? `${pred.prediction.toFixed(2)} MW` : '--';
+                                                    })()}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className="text-gray-500">Précision Modèle</span>
-                                                <span className="text-gray-400 font-bold">--</span>
+                                                <span className="text-gray-500">Précision (R²)</span>
+                                                <span className="text-green-600 font-bold">
+                                                    {modelMetrics && modelMetrics.metrics
+                                                        ? `${(modelMetrics.metrics.R2 * 100).toFixed(1)}%`
+                                                        : '--'}
+                                                </span>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className="text-gray-500">Prévisions Générées</span>
-                                                <span className="text-gray-400 font-bold">0</span>
+                                                <span className="text-gray-500">RMSE</span>
+                                                <span className="text-gray-900 font-bold">
+                                                    {modelMetrics && modelMetrics.metrics
+                                                        ? `${modelMetrics.metrics.RMSE.toFixed(2)}`
+                                                        : '--'}
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-500">MAE</span>
+                                                <span className="text-gray-900 font-bold">
+                                                    {modelMetrics && modelMetrics.metrics
+                                                        ? `${modelMetrics.metrics.MAE.toFixed(2)}`
+                                                        : '--'}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="bg-gray-100 rounded-xl p-4 border border-gray-200">
+                                    <div className="bg-green-50 rounded-xl p-4 border border-green-200">
                                         <div className="flex items-center gap-2 mb-2">
-                                            <FaClock className="text-gray-400" />
-                                            <span className="text-gray-600 font-semibold">Information</span>
+                                            <FaCheckCircle className="text-green-600" />
+                                            <span className="text-green-700 font-semibold">Statut</span>
                                         </div>
-                                        <p className="text-gray-400 text-sm">Le module de prévision est en cours de développement.</p>
+                                        <p className="text-green-600 text-sm">
+                                            {modelMetrics
+                                                ? `Modèle entraîné sur ${modelMetrics.n_train?.toLocaleString() || 0} échantillons`
+                                                : 'Chargement des données du modèle...'}
+                                        </p>
                                     </div>
                                 </div>
                             </ChartCard>
