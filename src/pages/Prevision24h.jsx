@@ -1,16 +1,15 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import {
     FaFileExcel,
     FaFileCsv,
     FaFileImage,
     FaChartLine,
     FaHistory,
-    FaPlay,
+    FaSync,
     FaSpinner,
     FaExclamationTriangle,
     FaCogs,
-    FaCheckCircle,
-    FaCalendarAlt
+    FaCheckCircle
 } from "react-icons/fa";
 import { MdShowChart, MdAccessTime } from "react-icons/md";
 import Plot from 'react-plotly.js';
@@ -22,20 +21,23 @@ export default function Prevision24h() {
     // Référence pour le graphique Plotly (export PNG)
     const plotlyRef = useRef(null);
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Chargement automatique au démarrage
     const [error, setError] = useState(null);
     const [showNotification, setShowNotification] = useState(false);
     const [successMessage, setSuccessMessage] = useState(null);
 
-    // États pour le formulaire de prévision
-    const [formData, setFormData] = useState({
+    // États simplifiés pour le formulaire de prévision
+    const [horizon, setHorizon] = useState(24);
+    const [model, setModel] = useState('catboost');
+
+    // Paramètres fixes (non affichés dans le formulaire)
+    const fixedParams = {
         measurement: 'dataset',
         field: 'CONSOMMATION_TOTALE',
         start: '2014-01-01',
         stop: '2019-10-07',
-        lags: 72,
-        horizon: 24
-    });
+        lags: 72
+    };
 
     // État pour les données de prévision de l'API
     const [apiResponse, setApiResponse] = useState(null);
@@ -119,39 +121,29 @@ export default function Prevision24h() {
         };
     }, [predictionData]);
 
-    // Gestion du formulaire
-    const handleInputChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: name === 'lags' || name === 'horizon' ? parseInt(value) || 0 : value
-        }));
-    };
-
-    // Soumission de la prévision
-    const handleSubmitPrediction = async () => {
+    // Fonction pour charger les prévisions
+    const loadPrediction = async (horizonValue = horizon) => {
         try {
             setLoading(true);
             setError(null);
             setShowNotification(false);
             setSuccessMessage(null);
-            setApiResponse(null);
 
-            // Construire les paramètres pour l'API
+            // Construire les paramètres pour l'API avec les valeurs fixes + horizon
             const params = {
-                measurement: formData.measurement,
-                field: formData.field,
-                start: `${formData.start}T00:00:00Z`,
-                stop: `${formData.stop}T00:00:00Z`,
-                lags: formData.lags,
-                horizon: formData.horizon
+                measurement: fixedParams.measurement,
+                field: fixedParams.field,
+                start: `${fixedParams.start}T00:00:00Z`,
+                stop: `${fixedParams.stop}T00:00:00Z`,
+                lags: fixedParams.lags,
+                horizon: horizonValue
             };
 
             const response = await ModelService.predictNextDay(params);
 
             // Stocker la réponse brute
             setApiResponse(response.data);
-            setSuccessMessage(`Prévision générée avec succès ! ${response.data.horizon_hours || 24} heures prédites.`);
+            setSuccessMessage(`Prévision générée avec succès ! ${response.data.horizon_hours || horizonValue} heures prédites.`);
 
             // Masquer le message de succès après 3 secondes
             setTimeout(() => {
@@ -159,6 +151,7 @@ export default function Prevision24h() {
             }, 3000);
 
         } catch (err) {
+            console.error('Erreur lors de la prévision:', err);
             setError('Erreur Backend: Impossible de générer la prévision pour le moment.');
             setShowNotification(true);
 
@@ -171,17 +164,15 @@ export default function Prevision24h() {
         }
     };
 
-    const getStatusStyle = (statut) => {
-        switch (statut) {
-            case 'Normal':
-                return 'bg-green-100 text-green-700 border-green-300';
-            case 'Pic Matin':
-                return 'bg-orange-100 text-orange-700 border-orange-300';
-            case 'Pic Soir':
-                return 'bg-red-100 text-red-700 border-red-300';
-            default:
-                return 'bg-gray-100 text-gray-700 border-gray-300';
-        }
+    // Chargement automatique des prévisions au montage du composant
+    useEffect(() => {
+        loadPrediction(horizon);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Fonction pour relancer la prévision avec les nouveaux paramètres
+    const handleRefreshPrediction = () => {
+        loadPrediction(horizon);
     };
 
     // ========== FONCTIONS D'EXPORT ==========
@@ -197,7 +188,7 @@ export default function Prevision24h() {
 
         Plotly.downloadImage(plotlyRef.current.el, {
             format: 'png',
-            filename: `prevision_${formData.stop}_${new Date().toISOString().split('T')[0]}`,
+            filename: `prevision_${fixedParams.stop}_${new Date().toISOString().split('T')[0]}`,
             width: 1200,
             height: 600,
             scale: 2 // Haute résolution
@@ -214,13 +205,12 @@ export default function Prevision24h() {
         }
 
         // Créer l'entête CSV
-        const headers = ['Heure', 'Consommation Prévue (kWh)', 'Statut'];
+        const headers = ['Heure', 'Consommation Prévue (kWh)'];
 
         // Créer les lignes de données
         const rows = detailedData.map(row => [
             row.heure,
-            row.prevision,
-            row.statut
+            row.prevision
         ]);
 
         // Assembler le CSV
@@ -234,7 +224,7 @@ export default function Prevision24h() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `prevision_${formData.stop}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.download = `prevision_${fixedParams.stop}_${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -253,50 +243,50 @@ export default function Prevision24h() {
         // Préparer les données pour Excel
         const excelData = detailedData.map(row => ({
             'Heure': row.heure,
-            'Consommation Prévue (kWh)': parseFloat(row.prevision),
-            'Statut': row.statut
+            'Consommation Prevue (kWh)': parseFloat(row.prevision)
         }));
 
         // Ajouter les statistiques en bas du tableau
         if (predictionStats) {
             excelData.push({}); // Ligne vide
-            excelData.push({ 'Heure': 'STATISTIQUES', 'Consommation Prévue (kWh)': '', 'Statut': '' });
-            excelData.push({ 'Heure': 'Minimum', 'Consommation Prévue (kWh)': parseFloat(predictionStats.min), 'Statut': 'kWh' });
-            excelData.push({ 'Heure': 'Maximum', 'Consommation Prévue (kWh)': parseFloat(predictionStats.max), 'Statut': 'kWh' });
-            excelData.push({ 'Heure': 'Moyenne', 'Consommation Prévue (kWh)': parseFloat(predictionStats.avg), 'Statut': 'kWh' });
-            excelData.push({ 'Heure': 'Total', 'Consommation Prévue (kWh)': parseFloat(predictionStats.total), 'Statut': 'kWh' });
+            excelData.push({ 'Heure': 'STATISTIQUES', 'Consommation Prevue (kWh)': '' });
+            excelData.push({ 'Heure': 'Minimum', 'Consommation Prevue (kWh)': parseFloat(predictionStats.min) });
+            excelData.push({ 'Heure': 'Maximum', 'Consommation Prevue (kWh)': parseFloat(predictionStats.max) });
+            excelData.push({ 'Heure': 'Moyenne', 'Consommation Prevue (kWh)': parseFloat(predictionStats.avg) });
+            excelData.push({ 'Heure': 'Total', 'Consommation Prevue (kWh)': parseFloat(predictionStats.total) });
         }
 
         // Créer le workbook et la feuille
         const worksheet = XLSX.utils.json_to_sheet(excelData);
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Prévisions');
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Previsions');
 
         // Ajuster la largeur des colonnes
         worksheet['!cols'] = [
             { wch: 10 },  // Heure
-            { wch: 25 },  // Consommation
-            { wch: 12 }   // Statut
+            { wch: 25 }   // Consommation
         ];
 
         // Télécharger le fichier
-        XLSX.writeFile(workbook, `prevision_${formData.stop}_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(workbook, `prevision_${fixedParams.stop}_${new Date().toISOString().split('T')[0]}.xlsx`);
     };
 
     // ========== FIN FONCTIONS D'EXPORT ==========
 
     const ChartCard = ({ title, children, icon, headerActions }) => (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-            <div className="flex items-center justify-between mb-6">
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                     <div className="text-[#E3001B] text-2xl">
                         {icon}
                     </div>
-                    <h3 className="text-gray-900 font-bold text-xl font-poppins">{title}</h3>
+                    <h3 className="text-gray-900 font-bold text-lg font-poppins">{title}</h3>
                 </div>
                 {headerActions}
             </div>
-            {children}
+            <div className="w-full">
+                {children}
+            </div>
         </div>
     );
 
@@ -315,7 +305,7 @@ export default function Prevision24h() {
     );
 
     return (
-        <div className="p-8 bg-[#F8F9FA] min-h-screen">
+        <div className="p-6 md:p-8 bg-[#F8F9FA] min-h-screen">
             {/* Notification Toast - Erreur */}
             {showNotification && error && (
                 <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl shadow-lg flex items-center gap-3 animate-pulse">
@@ -337,16 +327,16 @@ export default function Prevision24h() {
 
             {/* Header */}
             <div className="mb-8">
-                <p className="text-gray-500 text-lg font-poppins mb-2">Génération et analyse des prévisions</p>
-                <h1 className="text-5xl font-poppins font-bold text-gray-900 mb-2">
+                <p className="text-gray-500 text-sm font-poppins mb-1">Génération et analyse des prévisions</p>
+                <h1 className="text-2xl font-poppins font-bold text-gray-900 mb-2">
                     Prévision 24h
                 </h1>
-                <div className="h-1 w-24 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
+                <div className="h-1 w-20 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
             </div>
 
             {/* Grid principale : Formulaire + Résultats */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-8">
-                {/* Section Formulaire (1/3) */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8 mb-8">
+                {/* Section Formulaire simplifié (1/4) */}
                 <div className="xl:col-span-1">
                     <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 sticky top-8">
                         <div className="flex items-center gap-3 mb-6">
@@ -356,93 +346,41 @@ export default function Prevision24h() {
                             <h3 className="text-gray-900 font-bold text-xl font-poppins">Paramètres</h3>
                         </div>
 
-                        <div className="space-y-4">
-                            {/* Measurement */}
+                        <div className="space-y-5">
+                            {/* Horizon */}
                             <div>
-                                <label className="block text-gray-600 font-semibold mb-2 text-sm">Measurement</label>
-                                <input
-                                    type="text"
-                                    name="measurement"
-                                    value={formData.measurement}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
-                                />
-                            </div>
-
-                            {/* Field */}
-                            <div>
-                                <label className="block text-gray-600 font-semibold mb-2 text-sm">Field</label>
-                                <input
-                                    type="text"
-                                    name="field"
-                                    value={formData.field}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
-                                />
-                            </div>
-
-                            {/* Date Début */}
-                            <div>
-                                <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2 text-sm">
-                                    <FaCalendarAlt className="text-[#E3001B]" />
-                                    Date de début
+                                <label className="block text-gray-600 font-semibold mb-2 text-sm">
+                                    Horizon de prévision (heures)
                                 </label>
                                 <input
-                                    type="date"
-                                    name="start"
-                                    value={formData.start}
-                                    onChange={handleInputChange}
-                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
+                                    type="text"
+                                    value={horizon}
+                                    onChange={(e) => setHorizon(parseInt(e.target.value) || 24)}
+                                    className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B] text-center text-lg font-bold"
+                                    placeholder="24"
                                 />
+                                <p className="text-gray-400 text-xs mt-1 text-center">1h à 168h (7 jours max)</p>
                             </div>
 
-                            {/* Date Fin */}
+                            {/* Modèle */}
                             <div>
-                                <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2 text-sm">
-                                    <FaCalendarAlt className="text-[#FDB913]" />
-                                    Date de fin
+                                <label className="block text-gray-600 font-semibold mb-2 text-sm">
+                                    Modèle de prédiction
                                 </label>
-                                <input
-                                    type="date"
-                                    name="stop"
-                                    value={formData.stop}
-                                    onChange={handleInputChange}
+                                <select
+                                    value={model}
+                                    onChange={(e) => setModel(e.target.value)}
                                     className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
-                                />
+                                >
+                                    <option value="catboost">CatBoost</option>
+                                </select>
                             </div>
 
-                            {/* Lags & Horizon en 2 colonnes */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-gray-600 font-semibold mb-2 text-sm">Lags</label>
-                                    <input
-                                        type="number"
-                                        name="lags"
-                                        value={formData.lags}
-                                        onChange={handleInputChange}
-                                        min="1"
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-gray-600 font-semibold mb-2 text-sm">Horizon (h)</label>
-                                    <input
-                                        type="number"
-                                        name="horizon"
-                                        value={formData.horizon}
-                                        onChange={handleInputChange}
-                                        min="1"
-                                        max="168"
-                                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Bouton de soumission */}
+                            {/* Bouton Relancer */}
                             <button
-                                onClick={handleSubmitPrediction}
+                                onClick={handleRefreshPrediction}
                                 disabled={loading}
-                                className={`w-full px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 mt-6 ${
+                                className={`w-full px-6 py-4 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 mt-4 ${
                                     loading
                                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                         : 'bg-[#E3001B] text-white hover:bg-[#c40018] hover:shadow-lg'
@@ -455,22 +393,22 @@ export default function Prevision24h() {
                                     </>
                                 ) : (
                                     <>
-                                        <FaPlay />
-                                        Lancer la prévision
+                                        <FaSync />
+                                        Relancer la prévision
                                     </>
                                 )}
                             </button>
 
                             {/* Info */}
                             <p className="text-gray-400 text-xs text-center mt-4">
-                                Les prévisions sont calculées avec le modèle CatBoost
+                                Les prévisions sont calculées automatiquement au chargement de la page
                             </p>
                         </div>
                     </div>
                 </div>
 
-                {/* Section Résultats (2/3) */}
-                <div className="xl:col-span-2 space-y-8">
+                {/* Section Résultats (3/4) */}
+                <div className="xl:col-span-3 space-y-8">
                     {/* Statistiques rapides (si données disponibles) */}
                     {predictionStats && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -541,7 +479,7 @@ export default function Prevision24h() {
                         }
                     >
                         {loading ? (
-                            <div className="flex justify-center items-center h-[400px]">
+                            <div className="flex justify-center items-center h-[400px] w-full">
                                 <div className="text-center">
                                     <FaSpinner className="animate-spin text-[#E3001B] text-6xl mx-auto mb-4" />
                                     <p className="text-gray-500 font-medium">Calcul des prévisions en cours...</p>
@@ -549,17 +487,18 @@ export default function Prevision24h() {
                                 </div>
                             </div>
                         ) : predictionData ? (
-                            <Plot
-                                ref={plotlyRef}
-                                data={[
-                                    // Courbe principale de prévision
-                                    {
-                                        x: predictionData.x,
-                                        y: predictionData.y,
-                                        type: 'scatter',
-                                        mode: 'lines+markers',
-                                        name: 'Prévision',
-                                        line: {
+                            <div className="w-full h-[400px]">
+                                <Plot
+                                    ref={plotlyRef}
+                                    data={[
+                                        // Courbe principale de prévision
+                                        {
+                                            x: predictionData.x,
+                                            y: predictionData.y,
+                                            type: 'scatter',
+                                            mode: 'lines+markers',
+                                            name: 'Prévision',
+                                            line: {
                                             color: '#FDB913',
                                             width: 4,
                                             shape: 'spline'
@@ -598,17 +537,21 @@ export default function Prevision24h() {
                                     },
                                     margin: { t: 20, r: 40, b: 100, l: 80 },
                                     showlegend: true,
-                                    hovermode: 'x unified'
+                                    hovermode: 'x unified',
+                                    autosize: true
                                 }}
-                                style={{ width: '100%', height: '400px' }}
+                                style={{ width: '100%', height: '100%' }}
                                 config={{
                                     displayModeBar: true,
                                     modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-                                    displaylogo: false
+                                    displaylogo: false,
+                                    responsive: true
                                 }}
+                                useResizeHandler={true}
                             />
+                            </div>
                         ) : (
-                            <div className="flex flex-col justify-center items-center h-[400px] text-center">
+                            <div className="flex flex-col justify-center items-center h-[400px] w-full text-center">
                                 <div className="bg-gray-100 p-6 rounded-full mb-4">
                                     <FaChartLine className="text-gray-400 text-5xl" />
                                 </div>
@@ -643,7 +586,6 @@ export default function Prevision24h() {
                                 <tr className="border-b-2 border-gray-200 bg-gray-50">
                                     <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Heure</th>
                                     <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Prévision (kWh)</th>
-                                    <th className="text-center py-3 px-4 font-semibold text-[#E3001B]">Statut</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -654,11 +596,6 @@ export default function Prevision24h() {
                                             {row.heure}
                                         </td>
                                         <td className="py-3 px-4 text-right font-bold text-[#FDB913]">{row.prevision}</td>
-                                        <td className="py-3 px-4 text-center">
-                                            <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold border ${getStatusStyle(row.statut)}`}>
-                                                {row.statut}
-                                            </span>
-                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

@@ -10,9 +10,13 @@ export const ModelService = {
 
     /**
      * Récupère les métriques de performance du modèle
+     * @param {string} modelId - Identifiant du modèle (optionnel, pour les futurs modèles)
      * @returns {Promise} - { metrics: {RMSE, MAE, MAPE, SMAPE, R2}, n_train, n_val, n_test, split_date, params }
      */
-    getModelMetrics: () => {
+    getModelMetrics: (modelId = 'catboost') => {
+        // Pour l'instant, l'API ne supporte qu'un seul endpoint
+        // Quand d'autres modèles seront disponibles, on utilisera modelId pour router vers le bon endpoint
+        console.log(`📡 ModelService.getModelMetrics - Modèle: ${modelId}`);
         return api.get('/api/hourly/metrics');
     },
 

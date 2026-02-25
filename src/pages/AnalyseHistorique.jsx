@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { FaFileCsv, FaFileExcel, FaFileExport, FaFileImage, FaHistory, FaSearch, FaSpinner } from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaFileCsv, FaFileExcel, FaFileExport, FaFileImage, FaHistory, FaSearch, FaSpinner } from "react-icons/fa";
 import { MdShowChart } from "react-icons/md";
 import { BsCalendarDate } from "react-icons/bs";
 import Plot from 'react-plotly.js';
@@ -7,6 +7,7 @@ import Plotly from 'plotly.js-dist-min';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { useSeries } from '../hooks/useSeries';
+import { AnalyticsService } from '../services/AnalyticsService';
 import {
     transformSeriesData,
     calculateStatistics,
@@ -31,6 +32,15 @@ export default function AnalyseHistorique() {
     const [rawData, setRawData] = useState([]);
     const [statistics, setStatistics] = useState(null);
     const [showGraph, setShowGraph] = useState(false);
+
+    // États pour les peaks et troughs
+    const [peaksData, setPeaksData] = useState(null);
+    const [troughsData, setTroughsData] = useState(null);
+    const [peaksTroughsLoading, setPeaksTroughsLoading] = useState(false);
+
+    // États pour la pagination du tableau
+    const [currentPage, setCurrentPage] = useState(1);
+    const rowsPerPage = 20; // Nombre de lignes par page
 
     // Fonction pour convertir une date du format interne (YYYY-MM-DD) vers l'affichage (DD-MM-YYYY)
     const formatDateForDisplay = (dateString) => {
@@ -68,6 +78,8 @@ export default function AnalyseHistorique() {
         console.log('✅ Validation des dates OK');
         console.log('🔄 Reset de showGraph à false...');
         setShowGraph(false);
+        setPeaksData(null);
+        setTroughsData(null);
 
         try {
             console.log('📡 Appel fetchSeries avec paramètres:', {
@@ -90,6 +102,40 @@ export default function AnalyseHistorique() {
                 console.log('📊 result.values:', result.values?.length, 'éléments');
             } else {
                 console.warn('⚠️ Pas de résultat de fetchSeries');
+            }
+
+            // Récupérer les peaks et troughs en parallèle
+            console.log('📡 Appel API peaks_troughs...');
+            setPeaksTroughsLoading(true);
+            try {
+                const peaksTroughsResponse = await AnalyticsService.getAnalyticsPeaksTroughs(
+                    startDate,
+                    endDate,
+                    resample,
+                    typeConsommation,
+                    null, // min_prominence
+                    1     // min_distance
+                );
+
+                console.log('✅ Peaks/Troughs reçus:', peaksTroughsResponse.data);
+
+                if (peaksTroughsResponse.data) {
+                    // Stocker les peaks
+                    if (peaksTroughsResponse.data.peaks) {
+                        console.log('📈 Peaks détectés:', peaksTroughsResponse.data.peaks.length);
+                        setPeaksData(peaksTroughsResponse.data.peaks);
+                    }
+                    // Stocker les troughs
+                    if (peaksTroughsResponse.data.troughs) {
+                        console.log('📉 Troughs détectés:', peaksTroughsResponse.data.troughs.length);
+                        setTroughsData(peaksTroughsResponse.data.troughs);
+                    }
+                }
+            } catch (peaksError) {
+                console.warn('⚠️ Impossible de récupérer les peaks/troughs:', peaksError.message);
+                // On continue même si les peaks/troughs échouent
+            } finally {
+                setPeaksTroughsLoading(false);
             }
 
             console.log('✅ Appel API réussi');
@@ -136,6 +182,9 @@ export default function AnalyseHistorique() {
         console.log('📊 Nombre de timestamps:', series.timestamps?.length);
         console.log('📊 Nombre de values:', series.values?.length);
         console.log('📊 resample actuel:', resample);
+
+        // Réinitialiser la pagination à la première page
+        setCurrentPage(1);
 
         // Transformer en tableau simple
         console.log('🔄 Début transformation avec transformSeriesData...');
@@ -228,9 +277,11 @@ export default function AnalyseHistorique() {
             hasStatistics: !!statistics,
             hasTransformedData: !!transformedData,
             hasRawData: rawData.length,
-            loading
+            loading,
+            hasPeaks: peaksData?.length || 0,
+            hasTroughs: troughsData?.length || 0
         });
-    }, [showGraph, statistics, transformedData, rawData, loading]);
+    }, [showGraph, statistics, transformedData, rawData, loading, peaksData, troughsData]);
 
     // Génération des visualisations selon le filtre actif
     const getVisualization = () => {
@@ -246,10 +297,134 @@ export default function AnalyseHistorique() {
                 default: title = 'Consommation';
             }
 
+            // Copier les données de base (courbe de consommation)
+            const plotData = [...transformedData];
+
+            // Fonction pour formater les dates des peaks/troughs AU MÊME FORMAT que la courbe de consommation
+            // Le format doit correspondre EXACTEMENT à celui utilisé dans transformSeriesData
+            const formatPeakDate = (peak) => {
+                // L'API renvoie probablement 'time' ou 'timestamp' ou 'date'
+                const rawDate = peak.time || peak.timestamp || peak.date || peak.index;
+                if (!rawDate) return null;
+
+                try {
+                    const date = new Date(rawDate);
+
+                    // IMPORTANT: Utiliser exactement le même format que transformSeriesData
+                    switch (resample) {
+                        case '30min':
+                            // Format: "JJ/MM/AAAA HH:MM"
+                            return date.toLocaleString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        case 'H':
+                            // Format: "JJ/MM/AAAA HH:00"
+                            return date.toLocaleString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit'
+                            }) + ':00';
+                        case 'D':
+                            // Format: "JJ/MM/AAAA"
+                            return date.toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
+                        case 'W':
+                        case 'W-MON':
+                            // Format: "Semaine du JJ/MM/AAAA"
+                            return 'Semaine du ' + date.toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric'
+                            });
+                        default:
+                            return date.toLocaleDateString('fr-FR');
+                    }
+                } catch (e) {
+                    console.warn('Erreur formatage date peak:', e, rawDate);
+                    return null;
+                }
+            };
+
+            // Ajouter les peaks (pics) - marqueurs rouges triangles vers le haut
+            if (peaksData && peaksData.length > 0) {
+                console.log('📈 Peaks bruts:', peaksData);
+                console.log('📈 Premier peak:', peaksData[0]);
+
+                const peaksX = peaksData.map(p => formatPeakDate(p)).filter(x => x !== null);
+                const peaksY = peaksData.map(p => p.value || p.y || p.CONSOMMATION_TOTALE);
+
+                console.log('📈 Peaks formatés - X:', peaksX);
+                console.log('📈 Peaks formatés - Y:', peaksY);
+                console.log('📈 Comparaison avec X de la courbe:', transformedData[0]?.x?.slice(0, 3));
+
+                if (peaksX.length > 0 && peaksY.length > 0) {
+                    const peaksTrace = {
+                        x: peaksX,
+                        y: peaksY,
+                        type: 'scatter',
+                        mode: 'markers',
+                        name: 'Pics (Max)',
+                        marker: {
+                            color: '#E3001B',
+                            size: 16,
+                            symbol: 'triangle-up',
+                            line: { color: '#ffffff', width: 2 }
+                        },
+                        hovertemplate: '<b>🔺 Pic Maximum</b><br>Date: %{x}<br>Valeur: %{y:.2f} MW<extra></extra>'
+                    };
+                    plotData.push(peaksTrace);
+                }
+            }
+
+            // Ajouter les troughs (creux) - marqueurs jaunes triangles vers le bas
+            if (troughsData && troughsData.length > 0) {
+                console.log('📉 Troughs bruts:', troughsData);
+                console.log('📉 Premier trough:', troughsData[0]);
+
+                const troughsX = troughsData.map(t => formatPeakDate(t)).filter(x => x !== null);
+                const troughsY = troughsData.map(t => t.value || t.y || t.CONSOMMATION_TOTALE);
+
+                console.log('📉 Troughs formatés - X:', troughsX);
+                console.log('📉 Troughs formatés - Y:', troughsY);
+
+                if (troughsX.length > 0 && troughsY.length > 0) {
+                    const troughsTrace = {
+                        x: troughsX,
+                        y: troughsY,
+                        type: 'scatter',
+                        mode: 'markers',
+                        name: 'Creux (Min)',
+                        marker: {
+                            color: '#FDB913',
+                            size: 16,
+                            symbol: 'triangle-down',
+                            line: { color: '#ffffff', width: 2 }
+                        },
+                        hovertemplate: '<b>🔻 Creux Minimum</b><br>Date: %{x}<br>Valeur: %{y:.2f} MW<extra></extra>'
+                    };
+                    plotData.push(troughsTrace);
+                }
+            }
+
+            // Ajouter indication dans le titre si peaks/troughs présents
+            const hasPeaks = peaksData && peaksData.length > 0;
+            const hasTroughs = troughsData && troughsData.length > 0;
+            if (hasPeaks || hasTroughs) {
+                title += ' avec Pics et Creux';
+            }
+
             return {
                 type: 'line',
                 title: title,
-                data: transformedData
+                data: plotData
             };
         }
 
@@ -342,26 +517,28 @@ export default function AnalyseHistorique() {
     // ========== FIN FONCTIONS D'EXPORT ==========
 
     const ChartCard = ({ title, children, icon }) => (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden">
+            <div className="flex items-center gap-3 mb-4">
                 <div className="text-[#E3001B] text-2xl">
                     {icon}
                 </div>
-                <h3 className="text-gray-900 font-bold text-xl font-poppins">{title}</h3>
+                <h3 className="text-gray-900 font-bold text-lg font-poppins">{title}</h3>
             </div>
-            {children}
+            <div className="w-full">
+                {children}
+            </div>
         </div>
     );
 
     return (
-        <div className="p-8 bg-[#F8F9FA] min-h-screen">
+        <div className="p-6 md:p-8 bg-[#F8F9FA] min-h-screen">
             {/* Header */}
             <div className="mb-8">
-                <p className="text-gray-500 text-lg font-poppins mb-2">Exploration et analyse des données historiques</p>
-                <h1 className="text-5xl font-poppins font-bold text-gray-900 mb-2">
+                <p className="text-gray-500 text-sm font-poppins mb-1">Exploration et analyse des données historiques</p>
+                <h1 className="text-2xl font-poppins font-bold text-gray-900 mb-2">
                     Analyse Historique
                 </h1>
-                <div className="h-1 w-24 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
+                <div className="h-1 w-20 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
             </div>
 
             {/* Formulaire de recherche */}
@@ -551,33 +728,57 @@ export default function AnalyseHistorique() {
                         title={visualization.title}
                         icon={<MdShowChart />}
                     >
-                        {/* Boutons d'export */}
-                        <div className="flex items-center gap-2 mb-4 flex-wrap">
-                            <span className="text-gray-500 flex items-center gap-2">
-                                <FaFileExport />
-                                Export :
-                            </span>
-                            <button
-                                onClick={handleExportPNG}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200"
-                            >
-                                <FaFileImage />
-                                PNG
-                            </button>
-                            <button
-                                onClick={handleExportCSV}
-                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200"
-                            >
-                                <FaFileCsv />
-                                CSV
-                            </button>
-                            <button
-                                onClick={handleExportExcel}
-                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2"
-                            >
-                                <FaFileExcel />
-                                Excel
-                            </button>
+                        {/* Boutons d'export + indicateurs */}
+                        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-gray-500 flex items-center gap-2">
+                                    <FaFileExport />
+                                    Export :
+                                </span>
+                                <button
+                                    onClick={handleExportPNG}
+                                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200"
+                                >
+                                    <FaFileImage />
+                                    PNG
+                                </button>
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200"
+                                >
+                                    <FaFileCsv />
+                                    CSV
+                                </button>
+                                <button
+                                    onClick={handleExportExcel}
+                                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2"
+                                >
+                                    <FaFileExcel />
+                                    Excel
+                                </button>
+                            </div>
+
+                            {/* Indicateur de statut peaks/troughs */}
+                            <div className="flex items-center gap-4 text-sm">
+                                {peaksTroughsLoading && (
+                                    <span className="flex items-center gap-2 text-gray-500">
+                                        <FaSpinner className="animate-spin" />
+                                        Chargement pics/creux...
+                                    </span>
+                                )}
+                                {peaksData && peaksData.length > 0 && (
+                                    <span className="flex items-center gap-2 text-[#E3001B]">
+                                        <span className="w-3 h-3 bg-[#E3001B] rounded-full"></span>
+                                        {peaksData.length} pic{peaksData.length > 1 ? 's' : ''}
+                                    </span>
+                                )}
+                                {troughsData && troughsData.length > 0 && (
+                                    <span className="flex items-center gap-2 text-[#FDB913]">
+                                        <span className="w-3 h-3 bg-[#FDB913] rounded-full"></span>
+                                        {troughsData.length} creux
+                                    </span>
+                                )}
+                            </div>
                         </div>
 
                         {/* Message pour fonctionnalités désactivées */}
@@ -590,39 +791,53 @@ export default function AnalyseHistorique() {
                             </div>
                         ) : (
                             /* Graphique Plotly */
-                            <Plot
-                                ref={plotlyRef}
-                                data={visualization.data}
-                                layout={{
-                                    ...getPlotlyLayout('',
-                                        visualization.type === 'bar' ? 'Mois' : 'Jour',
-                                        'Consommation (MW)'
-                                    ),
-                                    xaxis: {
-                                        ...getPlotlyLayout('', '', '').xaxis,
-                                        tickangle: visualization.type === 'bar' ? -45 : 0,
-                                    },
-                                    margin: {
-                                        t: 40,
-                                        r: 50,
-                                        b: visualization.type === 'bar' ? 120 : 80,
-                                        l: 80
-                                    },
-                                    height: 500
-                                }}
-                                style={{ width: '100%', height: '500px' }}
-                                config={{
-                                    displayModeBar: true,
-                                    responsive: true,
-                                    toImageButtonOptions: {
-                                        format: 'png',
-                                        filename: 'analyse_historique',
-                                        height: 500,
-                                        width: 800,
-                                        scale: 1
-                                    }
-                                }}
-                            />
+                            <div className="w-full h-[500px]">
+                                <Plot
+                                    ref={plotlyRef}
+                                    data={visualization.data}
+                                    layout={{
+                                        ...getPlotlyLayout('',
+                                            visualization.type === 'bar' ? 'Mois' : 'Période',
+                                            'Consommation (MW)'
+                                        ),
+                                        xaxis: {
+                                            ...getPlotlyLayout('', '', '').xaxis,
+                                            tickangle: visualization.type === 'bar' ? -45 : 0,
+                                        },
+                                        margin: {
+                                            t: 40,
+                                            r: 50,
+                                            b: visualization.type === 'bar' ? 120 : 80,
+                                            l: 80
+                                        },
+                                        autosize: true,
+                                        showlegend: true,
+                                        legend: {
+                                            orientation: 'h',
+                                            yanchor: 'bottom',
+                                            y: 1.02,
+                                            xanchor: 'right',
+                                            x: 1,
+                                            bgcolor: 'rgba(255,255,255,0.8)',
+                                            bordercolor: '#E5E7EB',
+                                            borderwidth: 1
+                                        }
+                                    }}
+                                    style={{ width: '100%', height: '100%' }}
+                                    config={{
+                                        displayModeBar: true,
+                                        responsive: true,
+                                        toImageButtonOptions: {
+                                            format: 'png',
+                                            filename: 'analyse_historique',
+                                            height: 500,
+                                            width: 800,
+                                            scale: 1
+                                        }
+                                    }}
+                                    useResizeHandler={true}
+                                />
+                            </div>
                         )}
                     </ChartCard>
                 );
@@ -636,7 +851,10 @@ export default function AnalyseHistorique() {
                         icon={<FaHistory />}
                     >
                         {/* Bouton Export Excel au-dessus du tableau */}
-                        <div className="flex justify-end mb-4">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-gray-500 text-sm">
+                                {rawData.length} enregistrement{rawData.length > 1 ? 's' : ''} au total
+                            </span>
                             <button
                                 onClick={handleExportExcel}
                                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2"
@@ -656,20 +874,91 @@ export default function AnalyseHistorique() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {rawData.slice(0, 20).map((row, index) => (
-                                        <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                            <td className="py-3 px-4 font-medium">{row.periode}</td>
-                                            <td className="py-3 px-4 text-right font-bold text-[#E3001B]">{row.consommation}</td>
-                                        </tr>
-                                    ))}
+                                    {rawData
+                                        .slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+                                        .map((row, index) => (
+                                            <tr key={index} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                                <td className="py-3 px-4 font-medium">{row.periode}</td>
+                                                <td className="py-3 px-4 text-right font-bold text-[#E3001B]">{row.consommation}</td>
+                                            </tr>
+                                        ))}
                                 </tbody>
                             </table>
-                            {rawData.length > 20 && (
-                                <div className="mt-4 text-center text-gray-500 text-sm">
-                                    Affichage de 20 lignes sur {rawData.length} au total
-                                </div>
-                            )}
                         </div>
+
+                        {/* Pagination */}
+                        {rawData.length > rowsPerPage && (
+                            <div className="flex flex-col sm:flex-row justify-between items-center mt-6 pt-4 border-t border-gray-200 gap-4">
+                                {/* Info pagination */}
+                                <div className="text-gray-500 text-sm">
+                                    Affichage de{' '}
+                                    <span className="font-semibold text-gray-700">
+                                        {(currentPage - 1) * rowsPerPage + 1}
+                                    </span>
+                                    {' '}à{' '}
+                                    <span className="font-semibold text-gray-700">
+                                        {Math.min(currentPage * rowsPerPage, rawData.length)}
+                                    </span>
+                                    {' '}sur{' '}
+                                    <span className="font-semibold text-gray-700">
+                                        {rawData.length}
+                                    </span>
+                                    {' '}lignes
+                                </div>
+
+                                {/* Boutons de navigation */}
+                                <div className="flex items-center gap-2">
+                                    {/* Bouton Première page */}
+                                    <button
+                                        onClick={() => setCurrentPage(1)}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        title="Première page"
+                                    >
+                                        <span className="text-sm font-medium">1</span>
+                                    </button>
+
+                                    {/* Bouton Précédent */}
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1"
+                                    >
+                                        <FaChevronLeft className="text-sm" />
+                                        <span className="hidden sm:inline text-sm">Précédent</span>
+                                    </button>
+
+                                    {/* Indicateur de page actuelle */}
+                                    <div className="flex items-center gap-2 px-4">
+                                        <span className="text-gray-500 text-sm">Page</span>
+                                        <span className="bg-[#E3001B] text-white px-3 py-1 rounded-lg font-semibold text-sm">
+                                            {currentPage}
+                                        </span>
+                                        <span className="text-gray-500 text-sm">sur {Math.ceil(rawData.length / rowsPerPage)}</span>
+                                    </div>
+
+                                    {/* Bouton Suivant */}
+                                    <button
+                                        onClick={() => setCurrentPage(prev => Math.min(prev + 1, Math.ceil(rawData.length / rowsPerPage)))}
+                                        disabled={currentPage >= Math.ceil(rawData.length / rowsPerPage)}
+                                        className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-1"
+                                    >
+                                        <span className="hidden sm:inline text-sm">Suivant</span>
+                                        <FaChevronRight className="text-sm" />
+                                    </button>
+
+                                    {/* Bouton Dernière page */}
+                                    <button
+                                        onClick={() => setCurrentPage(Math.ceil(rawData.length / rowsPerPage))}
+                                        disabled={currentPage >= Math.ceil(rawData.length / rowsPerPage)}
+                                        className="px-3 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                        title="Dernière page"
+                                    >
+                                        <span className="text-sm font-medium">{Math.ceil(rawData.length / rowsPerPage)}</span>
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </ChartCard>
                 </div>
             )}

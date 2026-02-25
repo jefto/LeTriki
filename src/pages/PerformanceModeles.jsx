@@ -6,7 +6,8 @@ import {
     FaCogs,
     FaDatabase,
     FaCheckCircle,
-    FaExclamationTriangle
+    FaExclamationTriangle,
+    FaSync
 } from 'react-icons/fa';
 import {
     MdSpeed,
@@ -20,25 +21,48 @@ export default function PerformanceModeles() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // État pour le modèle sélectionné
+    const [selectedModel, setSelectedModel] = useState('catboost');
+
+    // Liste des modèles disponibles (à terme récupérée depuis l'API)
+    const availableModels = [
+        { id: 'catboost', name: 'CatBoost' }
+        // Les futurs modèles seront ajoutés ici
+    ];
+
+    // Fonction pour charger les métriques
+    const loadMetrics = async (modelId = selectedModel) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const response = await ModelService.getModelMetrics(modelId);
+            console.log('📊 Métriques reçues:', response.data);
+            setMetricsData(response.data);
+        } catch (err) {
+            console.error('❌ Erreur chargement métriques:', err);
+            setError('Impossible de charger les métriques du modèle. Veuillez réessayer.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // Charger les métriques au montage
     useEffect(() => {
-        const loadMetrics = async () => {
-            try {
-                setLoading(true);
-                setError(null);
-                const response = await ModelService.getModelMetrics();
-                console.log('📊 Métriques reçues:', response.data);
-                setMetricsData(response.data);
-            } catch (err) {
-                console.error('❌ Erreur chargement métriques:', err);
-                setError('Impossible de charger les métriques du modèle. Veuillez réessayer.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
         loadMetrics();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    // Gérer le changement de modèle
+    const handleModelChange = (e) => {
+        const newModel = e.target.value;
+        setSelectedModel(newModel);
+        loadMetrics(newModel);
+    };
+
+    // Fonction pour rafraîchir les métriques
+    const handleRefresh = () => {
+        loadMetrics(selectedModel);
+    };
 
     // Composant carte métrique KPI
     const MetricCard = ({ title, value, unit, description, icon, color = "#E3001B", bgColor = "bg-red-50" }) => (
@@ -149,14 +173,81 @@ export default function PerformanceModeles() {
     };
 
     return (
-        <div className="p-8 bg-[#F8F9FA] min-h-screen">
+        <div className="p-6 md:p-8 bg-[#F8F9FA] min-h-screen">
             {/* Header */}
             <div className="mb-8">
-                <p className="text-gray-500 text-lg font-poppins mb-2">Évaluation des performances</p>
-                <h1 className="text-5xl font-poppins font-bold text-gray-900 mb-2">
+                <p className="text-gray-500 text-sm font-poppins mb-1">Évaluation des performances</p>
+                <h1 className="text-2xl font-poppins font-bold text-gray-900 mb-2">
                     Performance Modèles
                 </h1>
-                <div className="h-1 w-24 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
+                <div className="h-1 w-20 bg-gradient-to-r from-[#E3001B] to-[#FDB913] rounded-full"></div>
+            </div>
+
+            {/* Section Paramétrage du modèle */}
+            <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 mb-8 overflow-hidden">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="text-[#E3001B] text-2xl">
+                        <FaCogs />
+                    </div>
+                    <h3 className="text-gray-900 font-bold text-lg font-poppins">Sélection du Modèle</h3>
+                </div>
+
+                <div className="flex flex-wrap items-end gap-6">
+                    {/* Sélecteur de modèle */}
+                    <div className="flex-1 min-w-[250px]">
+                        <label className="block text-gray-600 font-semibold mb-2 text-sm">
+                            Modèle de prédiction
+                        </label>
+                        <select
+                            value={selectedModel}
+                            onChange={handleModelChange}
+                            disabled={loading}
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B] disabled:opacity-50"
+                        >
+                            {availableModels.map((model) => (
+                                <option key={model.id} value={model.id}>
+                                    {model.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Bouton Rafraîchir */}
+                    <button
+                        onClick={handleRefresh}
+                        disabled={loading}
+                        className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 ${
+                            loading
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-[#E3001B] text-white hover:bg-[#c40018] hover:shadow-lg'
+                        }`}
+                    >
+                        {loading ? (
+                            <>
+                                <FaSpinner className="animate-spin" />
+                                Chargement...
+                            </>
+                        ) : (
+                            <>
+                                <FaSync />
+                                Rafraîchir
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                {/* Info sur le modèle sélectionné */}
+                <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-2 text-gray-600">
+                        <FaCheckCircle className="text-green-500" />
+                        <span className="font-medium">
+                            Modèle actif : <span className="text-[#E3001B] font-bold">{availableModels.find(m => m.id === selectedModel)?.name || selectedModel}</span>
+                        </span>
+                    </div>
+                    <p className="text-gray-400 text-sm mt-1">
+                        Les métriques affichées correspondent aux performances de ce modèle sur les données de test.
+                    </p>
+                </div>
             </div>
 
             {/* Loader global */}
@@ -232,30 +323,34 @@ export default function PerformanceModeles() {
                             </div>
 
                             {/* Graphique Pie */}
-                            <Plot
-                                data={getDataSplitChart()}
-                                layout={{
-                                    paper_bgcolor: 'rgba(0,0,0,0)',
-                                    plot_bgcolor: 'rgba(0,0,0,0)',
-                                    font: { family: 'Poppins', color: '#1F2937' },
-                                    showlegend: true,
-                                    legend: {
-                                        orientation: 'h',
-                                        y: -0.1,
-                                        x: 0.5,
-                                        xanchor: 'center',
-                                        font: { size: 12 }
-                                    },
-                                    margin: { t: 20, r: 20, b: 60, l: 20 },
-                                    annotations: [{
-                                        text: `<b>${(metricsData.n_train + metricsData.n_val + metricsData.n_test).toLocaleString()}</b><br>Total`,
-                                        showarrow: false,
-                                        font: { size: 14, family: 'Poppins' }
-                                    }]
-                                }}
-                                style={{ width: '100%', height: '350px' }}
-                                config={{ displayModeBar: false }}
-                            />
+                            <div className="w-full h-[350px]">
+                                <Plot
+                                    data={getDataSplitChart()}
+                                    layout={{
+                                        paper_bgcolor: 'rgba(0,0,0,0)',
+                                        plot_bgcolor: 'rgba(0,0,0,0)',
+                                        font: { family: 'Poppins', color: '#1F2937' },
+                                        showlegend: true,
+                                        legend: {
+                                            orientation: 'h',
+                                            y: -0.1,
+                                            x: 0.5,
+                                            xanchor: 'center',
+                                            font: { size: 12 }
+                                        },
+                                        margin: { t: 20, r: 20, b: 60, l: 20 },
+                                        annotations: [{
+                                            text: `<b>${(metricsData.n_train + metricsData.n_val + metricsData.n_test).toLocaleString()}</b><br>Total`,
+                                            showarrow: false,
+                                            font: { size: 14, family: 'Poppins' }
+                                        }],
+                                        autosize: true
+                                    }}
+                                    style={{ width: '100%', height: '100%' }}
+                                    config={{ displayModeBar: false, responsive: true }}
+                                    useResizeHandler={true}
+                                />
+                            </div>
 
                             {/* Légende détaillée */}
                             <div className="grid grid-cols-3 gap-4 mt-4">
