@@ -7,7 +7,8 @@ import {
     FaCalendarAlt,
     FaBrain,
     FaSpinner,
-    FaCheckCircle
+    FaCheckCircle,
+    FaCity
 } from 'react-icons/fa';
 import { 
     MdShowChart,
@@ -22,7 +23,8 @@ export default function Dashboard() {
     const [summaryData, setSummaryData] = useState(null);
     const [dailyCurveData, setDailyCurveData] = useState(null);
     const [weeklyHistData, setWeeklyHistData] = useState(null);
-    const [predictionHeatmapData, setPredictionHeatmapData] = useState(null);
+    const [predictionComboData, setPredictionComboData] = useState(null);
+    const [monthHeatmapData, setMonthHeatmapData] = useState(null);
     const [seriesLoading, setSeriesLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -32,218 +34,48 @@ export default function Dashboard() {
     const [predictionLoading, setPredictionLoading] = useState(false);
     const [currentHour] = useState(new Date().getHours());
 
+    // Données Mock pour les villes
+    const citiesData = [
+        { city: 'Lomé', value: 450 },
+        { city: 'Kara', value: 120 },
+        { city: 'Sokodé', value: 90 },
+        { city: 'Atakpamé', value: 60 },
+        { city: 'Dapaong', value: 40 }
+    ];
+
     // Loading global
     const loading = seriesLoading;
 
     // Obtenir la prédiction pour la prochaine heure
     const getNextHourPrediction = () => {
         if (!nextPrediction || !nextPrediction.predictions) return null;
-
-        // Calculer la prochaine heure (si 23h -> 0h, sinon heure+1)
         const nextHour = (currentHour + 1) % 24;
-
-        // Trouver la prédiction correspondante (hour dans l'API va de 1 à 24)
-        // hour=1 correspond à 01:00, hour=24 correspond à 00:00
         const hourToFind = nextHour === 0 ? 24 : nextHour;
         return nextPrediction.predictions.find(p => p.hour === hourToFind);
     };
 
     // Charger les données au montage du composant
     useEffect(() => {
-        // Fonction pour calculer la moyenne de consommation d'un tableau de valeurs
         const calculateAverage = (values) => {
             if (!values || values.length === 0) return 0;
             const sum = values.reduce((acc, val) => acc + (val || 0), 0);
             return sum / values.length;
         };
 
-        // Fonction pour calculer la somme totale de consommation
-        const calculateTotal = (values) => {
-            if (!values || values.length === 0) return 0;
-            return values.reduce((acc, val) => acc + (val || 0), 0);
-        };
-
-        const loadDashboardData = async () => {
+        const loadData = async () => {
             setSeriesLoading(true);
-            try {
-                // Dates cibles
-                const today = '2019-09-30';      // Jour "actuel" (30/09/2019)
-                const yesterday = '2019-09-29';  // Jour précédent (29/09/2019)
-                const weekStart = '2019-09-24';  // Début de la semaine
-                const weekEnd = '2019-09-30';    // Fin de la semaine
-                const monthStart = '2019-09-01'; // Début du mois
-                const monthEnd = '2019-09-30';   // Fin du mois
-
-                // Appels API en parallèle pour les 4 périodes
-                const [todayResponse, yesterdayResponse, weekResponse, monthResponse] = await Promise.all([
-                    AnalyticsService.getSeries(today, today, 'H', 'CONSOMMATION_TOTALE'),
-                    AnalyticsService.getSeries(yesterday, yesterday, 'H', 'CONSOMMATION_TOTALE'),
-                    AnalyticsService.getSeries(weekStart, weekEnd, 'D', 'CONSOMMATION_TOTALE'),
-                    AnalyticsService.getSeries(monthStart, monthEnd, 'D', 'CONSOMMATION_TOTALE')
-                ]);
-
-                console.log('📊 Données du 30/09/2019:', todayResponse.data);
-                console.log('📊 Données du 29/09/2019:', yesterdayResponse.data);
-                console.log('📊 Données semaine 24-30/09/2019:', weekResponse.data);
-                console.log('📊 Données mois 01-30/09/2019:', monthResponse.data);
-
-                // ===== TRAITEMENT DES DONNÉES JOURNALIÈRES (30/09 et 29/09) =====
-                let todayValues = [];
-                let todayHours = [];
-                let yesterdayValues = [];
-                let yesterdayHours = [];
-
-                if (todayResponse.data) {
-                    const data = todayResponse.data;
-                    const timeIndex = data.time_index || [];
-                    todayValues = data.y || [];
-                    todayHours = timeIndex.map(timestamp => {
-                        const date = new Date(timestamp);
-                        return date.getHours().toString().padStart(2, '0') + 'h';
-                    });
-                }
-
-                if (yesterdayResponse.data) {
-                    const data = yesterdayResponse.data;
-                    const timeIndex = data.time_index || [];
-                    yesterdayValues = data.y || [];
-                    yesterdayHours = timeIndex.map(timestamp => {
-                        const date = new Date(timestamp);
-                        return date.getHours().toString().padStart(2, '0') + 'h';
-                    });
-                }
-
-                // Créer les courbes de comparaison (30/09 en rouge, 29/09 en jaune)
-                if (todayHours.length > 0 || yesterdayHours.length > 0) {
-                    const plotlyData = [];
-
-                    // Courbe du 30/09/2019 (rouge)
-                    if (todayValues.length > 0) {
-                        plotlyData.push({
-                            x: todayHours,
-                            y: todayValues,
-                            type: 'scatter',
-                            mode: 'lines+markers',
-                            name: '30/09/2019 (Hier)',
-                            line: { color: '#E3001B', width: 3 },
-                            marker: { color: '#E3001B', size: 6 },
-                            hovertemplate: '<b>30/09 - %{x}</b><br>Consommation: %{y:.2f} MW<extra></extra>'
-                        });
-                    }
-
-                    // Courbe du 29/09/2019 (jaune)
-                    if (yesterdayValues.length > 0) {
-                        plotlyData.push({
-                            x: yesterdayHours,
-                            y: yesterdayValues,
-                            type: 'scatter',
-                            mode: 'lines+markers',
-                            name: '29/09/2019 (Avant Hier)',
-                            line: { color: '#FDB913', width: 3, dash: 'dot' },
-                            marker: { color: '#FDB913', size: 6 },
-                            hovertemplate: '<b>29/09 - %{x}</b><br>Consommation: %{y:.2f} MW<extra></extra>'
-                        });
-                    }
-
-                    setDailyCurveData(plotlyData);
-                }
-
-                // ===== TRAITEMENT DES DONNÉES HEBDOMADAIRES =====
-                let weeklyTotal = 0;
-                let weeklyAvg = 0;
-                const dayNames = ['Mar 24', 'Mer 25', 'Jeu 26', 'Ven 27', 'Sam 28', 'Dim 29', 'Lun 30'];
-
-                if (weekResponse.data) {
-                    const weekData = weekResponse.data;
-                    const weekValues = weekData.y || [];
-                    const weekTimeIndex = weekData.time_index || [];
-
-                    // Calculer la moyenne hebdomadaire
-                    weeklyTotal = calculateTotal(weekValues);
-                    weeklyAvg = calculateAverage(weekValues);
-
-                    console.log('📊 Total semaine:', weeklyTotal, 'Moyenne:', weeklyAvg);
-
-                    // Créer le graphique en barres pour chaque jour de la semaine
-                    if (weekValues.length > 0) {
-                        const colors = ['#E3001B', '#FDB913', '#E3001B', '#FDB913', '#E3001B', '#FDB913', '#E3001B'];
-
-                        // Mapper les dates aux noms de jours
-                        const xLabels = weekTimeIndex.map((timestamp) => {
-                            const date = new Date(timestamp);
-                            const dayOfWeek = date.toLocaleDateString('fr-FR', { weekday: 'short' });
-                            const dayNum = date.getDate();
-                            return `${dayOfWeek} ${dayNum}`;
-                        });
-
-                        const barData = [{
-                            x: xLabels.length > 0 ? xLabels : dayNames.slice(0, weekValues.length),
-                            y: weekValues,
-                            type: 'bar',
-                            name: 'Consommation journalière',
-                            marker: {
-                                color: colors.slice(0, weekValues.length),
-                                line: { color: '#E5E7EB', width: 1 }
-                            },
-                            hovertemplate: '<b>%{x}</b><br>Consommation: %{y:.2f} MW<extra></extra>'
-                        }];
-
-                        setWeeklyHistData(barData);
-                    }
-                }
-
-                // ===== TRAITEMENT DES DONNÉES MENSUELLES (01-30/09/2019) =====
-                let monthlyAvg = 0;
-                if (monthResponse.data) {
-                    const monthData = monthResponse.data;
-                    const monthValues = monthData.y || [];
-
-                    // Calculer la moyenne mensuelle
-                    monthlyAvg = calculateAverage(monthValues);
-                    console.log('📊 Moyenne mensuelle (septembre 2019):', monthlyAvg);
-                }
-
-                // ===== MISE À JOUR DU RÉSUMÉ (KPIs) =====
-                const todayTotal = calculateTotal(todayValues);
-                const yesterdayTotal = calculateTotal(yesterdayValues);
-                const variation = yesterdayTotal > 0
-                    ? ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100
-                    : 0;
-
-                setSummaryData({
-                    prevDayTotal: todayTotal,
-                    prevVsPrevday: variation,
-                    weeklyAvg: weeklyAvg,
-                    monthlyAvg: monthlyAvg  // Moyenne calculée sur le mois de septembre 2019
-                });
-
-                console.log('📊 Résumé:', {
-                    todayTotal,
-                    yesterdayTotal,
-                    variation: variation.toFixed(2) + '%',
-                    weeklyAvg,
-                    monthlyAvg
-                });
-
-            } catch (err) {
-                console.error('Erreur lors du chargement des données du dashboard:', err);
-                setError('Impossible de charger les données. Vérifiez la connexion au serveur.');
-            } finally {
-                setSeriesLoading(false);
-            }
-        };
-
-        // Charger les métriques du modèle et la prochaine prévision
-        const loadPredictionData = async () => {
             setPredictionLoading(true);
             try {
-                // Charger les métriques du modèle
-                const metricsResponse = await ModelService.getModelMetrics();
-                if (metricsResponse.data) {
-                    setModelMetrics(metricsResponse.data);
-                }
+                // Dates cibles
+                const day0 = '2019-09-30';      // Jour "actuel"
+                const dayMinus1 = '2019-09-29'; // Jour précédent
+                const dayMinus2 = '2019-09-28'; // Jour avant-précédent
+                
+                const weekStart = '2019-09-24';
+                const weekEnd = '2019-09-30';
+                const monthStart = '2019-09-01';
+                const monthEnd = '2019-09-30';
 
-                // Charger la prochaine prévision (24 heures pour avoir toutes les heures)
                 const predictionParams = {
                     measurement: 'dataset',
                     field: 'CONSOMMATION_TOTALE',
@@ -252,76 +84,271 @@ export default function Dashboard() {
                     lags: 72,
                     horizon: 24
                 };
-                const predictionResponse = await ModelService.predictNextDay(predictionParams);
-                if (predictionResponse.data && predictionResponse.data.predictions) {
-                    setNextPrediction(predictionResponse.data);
 
-                    // Créer les données pour le heatmap - uniquement les données de l'API
+                // Appels API en parallèle
+                const [
+                    rangeResponse, 
+                    weekResponse, 
+                    monthResponse,
+                    monthHourlyResponse, // Pour le heatmap mensuel
+                    metricsResponse,
+                    predictionResponse
+                ] = await Promise.all([
+                    AnalyticsService.getSeries(dayMinus2, day0, 'H', 'CONSOMMATION_TOTALE'),
+                    AnalyticsService.getSeries(weekStart, weekEnd, 'D', 'CONSOMMATION_TOTALE'),
+                    AnalyticsService.getSeries(monthStart, monthEnd, 'D', 'CONSOMMATION_TOTALE'),
+                    AnalyticsService.getSeries(monthStart, monthEnd, 'H', 'CONSOMMATION_TOTALE'),
+                    ModelService.getModelMetrics(),
+                    ModelService.predictNextDay(predictionParams)
+                ]);
+
+                if (metricsResponse.data) setModelMetrics(metricsResponse.data);
+                if (predictionResponse.data) setNextPrediction(predictionResponse.data);
+
+                // ===== 1. GRAPHE COMPARAISON J-1 / J-2 =====
+                if (rangeResponse.data) {
+                    const dataMap = {};
+                    if (rangeResponse.data.time_index) {
+                        rangeResponse.data.time_index.forEach((time, index) => {
+                            const date = new Date(time);
+                            const key = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')} ${date.getHours()}`;
+                            dataMap[key] = rangeResponse.data.y[index];
+                        });
+                    }
+
+                    const xValues = [];
+                    const mainY = [];
+                    const compY = [];
+                    const predY = [];
+                    const predHoverTemplate = [];
+                    
+                    for (let i = -18; i <= 6; i++) {
+                        const targetHour = currentHour + i;
+                        const mainDate = new Date('2019-09-30T00:00:00');
+                        mainDate.setHours(targetHour);
+                        const compDate = new Date('2019-09-29T00:00:00');
+                        compDate.setHours(targetHour);
+                        
+                        xValues.push(mainDate);
+                        
+                        const mainKey = `${mainDate.getFullYear()}-${String(mainDate.getMonth()+1).padStart(2,'0')}-${String(mainDate.getDate()).padStart(2,'0')} ${mainDate.getHours()}`;
+                        const compKey = `${compDate.getFullYear()}-${String(compDate.getMonth()+1).padStart(2,'0')}-${String(compDate.getDate()).padStart(2,'0')} ${compDate.getHours()}`;
+                        
+                        compY.push(dataMap[compKey] || null);
+
+                        let predictionValue = null;
+                        if (i >= 0) {
+                             if (predictionResponse.data && predictionResponse.data.predictions) {
+                                const labelHour = mainDate.getHours();
+                                const hourToFind = labelHour === 0 ? 24 : labelHour;
+                                const pred = predictionResponse.data.predictions.find(p => p.hour === hourToFind);
+                                if (pred) predictionValue = pred.prediction;
+                            }
+                        }
+
+                        if (i < 0) {
+                            mainY.push(dataMap[mainKey] || null);
+                            predY.push(null);
+                            predHoverTemplate.push('');
+                        } else if (i === 0) {
+                            const realValue = dataMap[mainKey] || null;
+                            mainY.push(realValue);
+                            predY.push(realValue);
+                            predHoverTemplate.push('<b>Hier - %{x|%Hh}</b><br>Consommation: %{y:.2f} MW<extra></extra>');
+                        } else {
+                            mainY.push(null);
+                            predY.push(predictionValue);
+                            predHoverTemplate.push('<b>Prévision - %{x|%Hh}</b><br>Consommation: %{y:.2f} MW<extra></extra>');
+                        }
+                    }
+
+                    setDailyCurveData([
+                        {
+                            x: xValues,
+                            y: mainY,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: 'Hier',
+                            line: { color: '#E3001B', width: 3 },
+                            marker: { color: '#E3001B', size: 6 },
+                            hovertemplate: '<b>Hier - %{x|%Hh}</b><br>Consommation: %{y:.2f} MW<extra></extra>'
+                        },
+                        {
+                            x: xValues,
+                            y: predY,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: 'Prévision',
+                            line: { color: '#E3001B', width: 3, dash: 'dot' },
+                            marker: { color: '#E3001B', size: 6, symbol: 'circle-open', line: { width: 2 } },
+                            hovertemplate: predHoverTemplate
+                        },
+                        {
+                            x: xValues,
+                            y: compY,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: 'Avant Hier',
+                            line: { color: '#FDB913', width: 3 },
+                            marker: { color: '#FDB913', size: 6 },
+                            hovertemplate: '<b>Avant Hier - %{x|%Hh}</b><br>Consommation: %{y:.2f} MW<extra></extra>'
+                        }
+                    ]);
+
+                    // KPIs
+                    let todayTotal = 0;
+                    let yesterdayTotal = 0;
+                    Object.keys(dataMap).forEach(key => {
+                        if (key.startsWith('2019-09-30')) todayTotal += dataMap[key] || 0;
+                        if (key.startsWith('2019-09-29')) yesterdayTotal += dataMap[key] || 0;
+                    });
+                    const variation = yesterdayTotal > 0 ? ((todayTotal - yesterdayTotal) / yesterdayTotal) * 100 : 0;
+                    
+                    // Moyennes
+                    let weeklyAvg = 0;
+                    if (weekResponse.data && weekResponse.data.y) {
+                        const vals = weekResponse.data.y;
+                        weeklyAvg = vals.reduce((a, b) => a + b, 0) / vals.length;
+                    }
+                    let monthlyAvg = 0;
+                    if (monthResponse.data && monthResponse.data.y) {
+                        const vals = monthResponse.data.y;
+                        monthlyAvg = vals.reduce((a, b) => a + b, 0) / vals.length;
+                    }
+
+                    setSummaryData({
+                        prevDayTotal: todayTotal,
+                        prevVsPrevday: variation,
+                        weeklyAvg: weeklyAvg,
+                        monthlyAvg: monthlyAvg
+                    });
+                }
+
+                // ===== 2. GRAPHE HEBDOMADAIRE (Jours seulement) =====
+                if (weekResponse.data && weekResponse.data.y) {
+                    const vals = weekResponse.data.y;
+                    const weekTimeIndex = weekResponse.data.time_index || [];
+                    
+                    // Formatage des labels : Juste le nom du jour
+                    const xLabelsWeek = weekTimeIndex.map((timestamp) => {
+                        const date = new Date(timestamp);
+                        // 'fr-FR' avec weekday: 'short' donne 'lun.', 'mar.', etc.
+                        // On met la première lettre en majuscule
+                        const dayName = date.toLocaleDateString('fr-FR', { weekday: 'short' });
+                        return dayName.charAt(0).toUpperCase() + dayName.slice(1).replace('.', '');
+                    });
+                    
+                    setWeeklyHistData([{
+                        x: xLabelsWeek,
+                        y: vals,
+                        type: 'bar',
+                        name: 'Conso',
+                        marker: {
+                            color: vals.map((_, i) => i === vals.length - 1 ? '#E3001B' : '#FDB913'),
+                        },
+                        hovertemplate: '<b>%{x}</b><br>%{y:.2f} MW<extra></extra>'
+                    }]);
+                }
+
+                // ===== 3. GRAPHE PRÉVISION (Bâtons + Ligne) =====
+                if (predictionResponse.data && predictionResponse.data.predictions) {
                     const predictions = predictionResponse.data.predictions;
                     const hours = predictions.map(p => `${p.hour.toString().padStart(2, '0')}h`);
                     const values = predictions.map(p => p.prediction);
 
-                    // Heatmap simple : abscisse = 24h, ordonnée = valeurs de consommation
-                    const heatmapData = [{
-                        z: [values],
-                        x: hours,
-                        y: ['Consommation'],
+                    setPredictionComboData([
+                        {
+                            x: hours,
+                            y: values,
+                            type: 'bar',
+                            name: 'Prévision (Barres)',
+                            marker: { color: '#FDB913', opacity: 0.6 },
+                            hovertemplate: 'Heure: %{x}<br>Conso: %{y:.2f} MW<extra></extra>'
+                        },
+                        {
+                            x: hours,
+                            y: values,
+                            type: 'scatter',
+                            mode: 'lines+markers',
+                            name: 'Tendance',
+                            line: { color: '#E3001B', width: 3 },
+                            marker: { color: '#E3001B', size: 6 },
+                            hovertemplate: 'Heure: %{x}<br>Conso: %{y:.2f} MW<extra></extra>'
+                        }
+                    ]);
+                }
+
+                // ===== 4. HEATMAP MENSUEL (Jours vs Heures) =====
+                if (monthHourlyResponse.data && monthHourlyResponse.data.y) {
+                    const hourlyData = monthHourlyResponse.data;
+                    const timestamps = hourlyData.time_index;
+                    const values = hourlyData.y;
+
+                    // Extraction des jours uniques et heures
+                    const dates = [...new Set(timestamps.map(t => new Date(t).toLocaleDateString('fr-FR')))];
+                    const hours = Array.from({length: 24}, (_, i) => `${String(i).padStart(2, '0')}h`);
+
+                    // Construction de la matrice Z [heures][jours] ou [jours][heures]
+                    // Plotly Heatmap: z[y][x]
+                    // On veut X=Jours, Y=Heures. Donc Z doit être un tableau de tableaux où chaque sous-tableau correspond à une HEURE (Y) et contient les valeurs pour chaque JOUR (X).
+                    
+                    const zData = hours.map((h, hourIndex) => {
+                        return dates.map(d => {
+                            // Trouver la valeur correspondant à ce jour et cette heure
+                            // Note: C'est un peu lent O(N^2), mais N est petit (30 jours * 24 heures)
+                            const index = timestamps.findIndex(t => {
+                                const date = new Date(t);
+                                return date.toLocaleDateString('fr-FR') === d && date.getHours() === hourIndex;
+                            });
+                            return index !== -1 ? values[index] : null;
+                        });
+                    });
+
+                    setMonthHeatmapData([{
+                        z: zData,
+                        x: dates,
+                        y: hours,
                         type: 'heatmap',
                         colorscale: [
-                            [0, '#FFF3CD'],      // Jaune clair pour les valeurs basses
-                            [0.25, '#FDB913'],   // Jaune CEET
-                            [0.5, '#FF6B35'],    // Orange
-                            [0.75, '#E3001B'],   // Rouge CEET
-                            [1, '#8B0000']       // Rouge foncé pour les valeurs hautes
+                            [0, '#FFF3CD'],
+                            [0.25, '#FDB913'],
+                            [0.5, '#FF6B35'],
+                            [0.75, '#E3001B'],
+                            [1, '#8B0000']
                         ],
-                        hovertemplate: 'Heure: %{x}<br>Consommation: %{z:.2f} MW<extra></extra>',
-                        showscale: true,
-                        colorbar: {
-                            title: 'MW',
-                            titleside: 'right',
-                            thickness: 15,
-                            len: 0.9
-                        }
-                    }];
-
-                    setPredictionHeatmapData(heatmapData);
+                        colorbar: { title: 'MW' },
+                        hovertemplate: 'Jour: %{x}<br>Heure: %{y}<br>Conso: %{z:.2f} MW<extra></extra>'
+                    }]);
                 }
+
             } catch (err) {
-                console.error('Erreur lors du chargement des données de prévision:', err);
+                console.error('Erreur chargement dashboard:', err);
+                setError('Erreur de chargement des données.');
             } finally {
+                setSeriesLoading(false);
                 setPredictionLoading(false);
             }
         };
 
-        loadDashboardData();
-        loadPredictionData();
+        loadData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
 
-    const MetricCard = ({ title, value, subtitle, icon, trend, trendValue, iconColor = "text-[#E3001B]", iconBg = "bg-red-50" }) => (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 group border border-gray-100 overflow-hidden h-full">
-            <div className="flex items-start justify-between mb-4">
-                <div className={`${iconBg} ${iconColor} p-3 rounded-full text-2xl group-hover:scale-110 transition-transform duration-300`}>
+    const MetricCard = ({ title, value, icon, iconColor = "text-[#E3001B]", iconBg = "bg-red-50" }) => (
+        <div className="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 group border border-gray-100 overflow-hidden h-full flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-1">
+                <div className="text-gray-900 text-2xl font-bold font-poppins">{value}</div>
+                <div className={`${iconBg} ${iconColor} p-2 rounded-lg text-lg group-hover:scale-110 transition-transform duration-300`}>
                     {icon}
                 </div>
-                {trend && (
-                    <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${
-                        trend === 'up' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                    }`}>
-                        <FaArrowUp className={trend === 'down' ? 'rotate-180' : ''} />
-                        {trendValue}
-                    </div>
-                )}
             </div>
-            <h3 className="text-gray-500 text-sm font-poppins mb-2 uppercase tracking-wider">{title}</h3>
-            <p className="text-gray-900 text-3xl font-bold font-poppins mb-1">{value}</p>
-            <p className="text-gray-400 text-sm font-poppins">{subtitle}</p>
+            <h3 className="text-gray-500 text-xs font-poppins uppercase tracking-wider font-medium">{title}</h3>
         </div>
     );
 
     const ChartCard = ({ title, children, icon }) => (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden">
+        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100 overflow-hidden h-full">
             <div className="flex items-center gap-3 mb-4">
                 <div className="text-[#E3001B] text-2xl">
                     {icon}
@@ -362,21 +389,17 @@ export default function Dashboard() {
             {/* Métriques principales */}
             {!loading && (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
                         <MetricCard
                             title="Consommation Jour Précédent"
                             value={summaryData ? `${summaryData.prevDayTotal.toFixed(2)} MW` : "-- MW"}
-                            subtitle={summaryData ? `${summaryData.prevVsPrevday > 0 ? '+' : ''}${summaryData.prevVsPrevday.toFixed(1)}% vs avant-hier` : "Chargement..."}
                             icon={<FaBolt />}
                             iconColor="text-[#E3001B]"
                             iconBg="bg-red-50"
-                            trend={summaryData && summaryData.prevVsPrevday >= 0 ? "up" : "down"}
-                            trendValue={summaryData ? `${Math.abs(summaryData.prevVsPrevday).toFixed(1)}%` : "0%"}
                         />
                         <MetricCard
                             title="Moyenne Hebdomadaire"
                             value={summaryData ? `${summaryData.weeklyAvg.toFixed(2)} MW` : "-- MW"}
-                            subtitle="7 derniers jours"
                             icon={<FaCalendarAlt />}
                             iconColor="text-[#FDB913]"
                             iconBg="bg-yellow-50"
@@ -384,7 +407,6 @@ export default function Dashboard() {
                         <MetricCard
                             title="Moyenne Mensuelle"
                             value={summaryData ? `${summaryData.monthlyAvg.toFixed(2)} MW` : "-- MW"}
-                            subtitle="30 derniers jours"
                             icon={<FaChartLine />}
                             iconColor="text-[#E3001B]"
                             iconBg="bg-red-50"
@@ -396,20 +418,14 @@ export default function Dashboard() {
                                 if (pred) return `${pred.prediction.toFixed(2)} MW`;
                                 return predictionLoading ? "Chargement..." : "-- MW";
                             })()}
-                            subtitle={(() => {
-                                const nextHour = (currentHour + 1) % 24;
-                                const nextHourStr = nextHour.toString().padStart(2, '0');
-                                return `Prévision pour ${nextHourStr}:00 (actuellement ${currentHour}:00)`;
-                            })()}
                             icon={<FaBrain />}
                             iconColor="text-[#FDB913]"
                             iconBg="bg-yellow-50"
                         />
                     </div>
 
-                    {/* Graphiques et sections */}
                     <div className="space-y-6">
-                        {/* Graphique de comparaison J-1 / J-2 - Pleine largeur */}
+                        {/* LIGNE 1: Comparaison J-1 / J-2 - Pleine largeur */}
                         <ChartCard
                             title="Comparaison Consommation J-1 vs J-2 (Courbe Horaire)"
                             icon={<MdShowChart />}
@@ -422,7 +438,13 @@ export default function Dashboard() {
                                             ...getPlotlyLayout('', 'Heure', 'Consommation (MW)'),
                                             margin: { t: 30, r: 40, b: 80, l: 80 },
                                             legend: { orientation: 'h', y: -0.2 },
-                                            autosize: true
+                                            autosize: true,
+                                            xaxis: {
+                                                type: 'date',
+                                                tickformat: '%Hh',
+                                                tickangle: -45,
+                                                dtick: 7200000 // 2 heures en millisecondes
+                                            }
                                         }}
                                         style={{ width: '100%', height: '100%' }}
                                         config={{ displayModeBar: false, responsive: true }}
@@ -431,15 +453,12 @@ export default function Dashboard() {
                                 </div>
                             ) : (
                                 <div className="flex justify-center items-center h-[350px] w-full">
-                                    <div className="text-center">
-                                        <FaSpinner className="animate-spin text-[#E3001B] text-4xl mx-auto mb-4" />
-                                        <p className="text-gray-500">Chargement des données...</p>
-                                    </div>
+                                    <FaSpinner className="animate-spin text-[#E3001B] text-4xl" />
                                 </div>
                             )}
                         </ChartCard>
 
-                        {/* Ligne avec Diagramme en barres et Heatmap */}
+                        {/* LIGNE 2: Consommation Hebdo + Répartition Villes */}
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             {/* Diagramme en barres - Consommation hebdomadaire */}
                             <ChartCard
@@ -462,67 +481,106 @@ export default function Dashboard() {
                                     </div>
                                 ) : (
                                     <div className="flex justify-center items-center h-[350px] w-full">
-                                        <div className="text-center">
-                                            <FaSpinner className="animate-spin text-[#E3001B] text-4xl mx-auto mb-4" />
-                                            <p className="text-gray-500">Chargement des données...</p>
-                                        </div>
+                                        <FaSpinner className="animate-spin text-[#E3001B] text-4xl" />
                                     </div>
                                 )}
                             </ChartCard>
 
-                            {/* Heatmap - Prévisions de consommation */}
+                            {/* Donut Chart - Répartition par Ville */}
                             <ChartCard
-                                title="Carte de Chaleur - Prévisions 24h"
-                                icon={<FaBrain />}
+                                title="Répartition par Ville"
+                                icon={<FaCity />}
                             >
-                                {predictionHeatmapData ? (
-                                    <div className="w-full h-[350px]">
-                                        <Plot
-                                            data={predictionHeatmapData}
-                                            layout={{
-                                                ...getPlotlyLayout('', 'Heure (24h)', 'Consommation (MW)'),
-                                                margin: { t: 30, r: 100, b: 60, l: 80 },
-                                                xaxis: {
-                                                    title: 'Heure',
-                                                    tickangle: -45,
-                                                    gridcolor: '#E5E7EB',
-                                                    tickfont: { color: '#6B7280', size: 10 }
-                                                },
-                                                yaxis: {
-                                                    title: '',
-                                                    gridcolor: '#E5E7EB',
-                                                    tickfont: { color: '#6B7280' },
-                                                    showticklabels: false
-                                                },
-                                                autosize: true
-                                            }}
-                                            style={{ width: '100%', height: '100%' }}
-                                            config={{ displayModeBar: false, responsive: true }}
-                                            useResizeHandler={true}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="flex justify-center items-center h-[350px] w-full">
-                                        <div className="text-center">
-                                            {predictionLoading ? (
-                                                <>
-                                                    <FaSpinner className="animate-spin text-[#FDB913] text-4xl mx-auto mb-4" />
-                                                    <p className="text-gray-500">Calcul des prévisions...</p>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <FaBrain className="text-gray-300 text-4xl mx-auto mb-4" />
-                                                    <p className="text-gray-500">Prévisions non disponibles</p>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="w-full h-[350px]">
+                                    <Plot
+                                        data={[{
+                                            values: citiesData.map(c => c.value),
+                                            labels: citiesData.map(c => c.city),
+                                            type: 'pie',
+                                            hole: 0.6, // Anneau
+                                            marker: {
+                                                colors: ['#E3001B', '#FDB913', '#FF6B35', '#8B0000', '#F59E0B']
+                                            },
+                                            textinfo: 'label+percent',
+                                            hoverinfo: 'label+value+percent'
+                                        }]}
+                                        layout={{
+                                            ...getPlotlyLayout('', '', ''),
+                                            margin: { t: 20, r: 20, b: 20, l: 20 },
+                                            showlegend: true,
+                                            legend: { orientation: 'v', x: 1, y: 0.5 }
+                                        }}
+                                        style={{ width: '100%', height: '100%' }}
+                                        config={{ displayModeBar: false, responsive: true }}
+                                        useResizeHandler={true}
+                                    />
+                                </div>
                             </ChartCard>
                         </div>
+
+                        {/* LIGNE 3: Prévisions (Bâtons + Ligne) */}
+                        <ChartCard
+                            title="Prévisions 24h (Bâtons + Tendance)"
+                            icon={<FaBrain />}
+                        >
+                            {predictionComboData ? (
+                                <div className="w-full h-[350px]">
+                                    <Plot
+                                        data={predictionComboData}
+                                        layout={{
+                                            ...getPlotlyLayout('', 'Heure (24h)', 'Consommation (MW)'),
+                                            margin: { t: 30, r: 40, b: 80, l: 80 },
+                                            legend: { orientation: 'h', y: -0.2 },
+                                            xaxis: {
+                                                tickangle: -45
+                                            }
+                                        }}
+                                        style={{ width: '100%', height: '100%' }}
+                                        config={{ displayModeBar: false, responsive: true }}
+                                        useResizeHandler={true}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="flex justify-center items-center h-[350px] w-full">
+                                    <FaSpinner className="animate-spin text-[#E3001B] text-4xl" />
+                                </div>
+                            )}
+                        </ChartCard>
+
+                        {/* LIGNE 4: Heatmap Mensuel (Pleine largeur) */}
+                        <ChartCard
+                            title="Carte de Chaleur Mensuelle (Jours vs Heures)"
+                            icon={<MdBarChart />}
+                        >
+                            {monthHeatmapData ? (
+                                <div className="w-full h-[400px]">
+                                    <Plot
+                                        data={monthHeatmapData}
+                                        layout={{
+                                            ...getPlotlyLayout('', 'Jour', 'Heure'),
+                                            margin: { t: 30, r: 50, b: 80, l: 80 },
+                                            xaxis: {
+                                                tickangle: -45
+                                            },
+                                            yaxis: {
+                                                tickmode: 'linear',
+                                                dtick: 2 // Intervalle de 2 heures
+                                            }
+                                        }}
+                                        style={{ width: '100%', height: '100%' }}
+                                        config={{ displayModeBar: false, responsive: true }}
+                                        useResizeHandler={true}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="flex justify-center items-center h-[400px] w-full">
+                                    <FaSpinner className="animate-spin text-[#E3001B] text-4xl" />
+                                </div>
+                            )}
+                        </ChartCard>
                     </div>
 
-                    {/* Section Module Prévision */}
+                    {/* Section Module Prévision (inchangée) */}
                     <div className="mt-6">
                         <ChartCard
                             title="Module Prévision"

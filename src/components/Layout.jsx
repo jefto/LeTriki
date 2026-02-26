@@ -11,11 +11,15 @@ export default function Layout() {
 
     return (
         <div className="flex h-screen bg-gray-50 overflow-hidden">
-            <SideBar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
-            <main className="flex-1 overflow-y-auto overflow-x-hidden transition-all duration-300">
+            {/* Sidebar avec flex-shrink-0 pour empêcher son rétrécissement */}
+            <div className="flex-shrink-0 h-full">
+                <SideBar collapsed={sidebarCollapsed} onToggle={toggleSidebar} />
+            </div>
+            
+            {/* Contenu principal fluide qui occupe tout l'espace restant */}
+            <main className="flex-1 h-full overflow-y-auto overflow-x-hidden transition-all duration-300 relative">
                 <Outlet />
             </main>
         </div>
     );
 }
-

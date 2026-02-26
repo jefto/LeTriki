@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import {
     FaFileExcel,
     FaFileCsv,
@@ -292,14 +292,14 @@ export default function Prevision24h() {
 
     // Composant pour les cartes de statistiques
     const StatCard = ({ title, value, unit, icon, color }) => (
-        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-            <div className="flex items-center gap-2 mb-2">
+        <div className="bg-gray-50 p-3 rounded-xl border border-gray-200">
+            <div className="flex items-center gap-2 mb-1">
                 <span className={`text-lg ${color}`}>{icon}</span>
-                <span className="text-gray-500 text-sm font-medium">{title}</span>
+                <span className="text-gray-500 text-xs font-medium">{title}</span>
             </div>
             <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-gray-900">{value}</span>
-                <span className="text-gray-500 text-sm">{unit}</span>
+                <span className="text-xl font-bold text-gray-900">{value}</span>
+                <span className="text-gray-500 text-xs">{unit}</span>
             </div>
         </div>
     );
@@ -623,4 +623,3 @@ export default function Prevision24h() {
         </div>
     );
 }
-

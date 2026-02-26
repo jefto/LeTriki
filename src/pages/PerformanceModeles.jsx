@@ -66,56 +66,56 @@ export default function PerformanceModeles() {
 
     // Composant carte métrique KPI
     const MetricCard = ({ title, value, unit, description, icon, color = "#E3001B", bgColor = "bg-red-50" }) => (
-        <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-            <div className="flex items-start justify-between mb-4">
-                <div className={`${bgColor} p-3 rounded-full text-2xl`} style={{ color }}>
+        <div className="bg-white p-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100">
+            <div className="flex items-start justify-between mb-2">
+                <div className={`${bgColor} p-2 rounded-full text-lg`} style={{ color }}>
                     {icon}
                 </div>
             </div>
-            <h3 className="text-gray-500 text-sm font-poppins mb-2 uppercase tracking-wider">{title}</h3>
+            <h3 className="text-gray-500 text-xs font-poppins mb-1 uppercase tracking-wider">{title}</h3>
             <div className="flex items-baseline gap-1">
-                <p className="text-gray-900 text-3xl font-bold font-poppins">{value}</p>
-                {unit && <span className="text-gray-500 text-lg">{unit}</span>}
+                <p className="text-gray-900 text-xl font-bold font-poppins">{value}</p>
+                {unit && <span className="text-gray-500 text-xs">{unit}</span>}
             </div>
-            {description && <p className="text-gray-400 text-sm font-poppins mt-1">{description}</p>}
+            {description && <p className="text-gray-400 text-[10px] font-poppins mt-0.5">{description}</p>}
         </div>
     );
 
     // Composant carte R² avec jauge circulaire
     const R2Card = ({ value }) => {
         const percentage = (value * 100).toFixed(0);
-        const circumference = 2 * Math.PI * 45;
+        const circumference = 2 * Math.PI * 30; // Reduced radius
         const strokeDashoffset = circumference - (value * circumference);
 
         return (
-            <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
-                <div className="flex items-start justify-between mb-4">
-                    <div className="bg-green-50 text-green-600 p-3 rounded-full text-2xl">
+            <div className="bg-white p-3 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100">
+                <div className="flex items-start justify-between mb-2">
+                    <div className="bg-green-50 text-green-600 p-2 rounded-full text-lg">
                         <FaCheckCircle />
                     </div>
                 </div>
-                <h3 className="text-gray-500 text-sm font-poppins mb-2 uppercase tracking-wider">Coefficient R²</h3>
+                <h3 className="text-gray-500 text-xs font-poppins mb-1 uppercase tracking-wider">Coefficient R²</h3>
 
                 {/* Jauge circulaire */}
-                <div className="flex items-center justify-center my-4">
+                <div className="flex items-center justify-center my-2">
                     <div className="relative">
-                        <svg className="w-28 h-28 transform -rotate-90">
+                        <svg className="w-20 h-20 transform -rotate-90">
                             {/* Cercle de fond */}
                             <circle
-                                cx="56"
-                                cy="56"
-                                r="45"
+                                cx="40"
+                                cy="40"
+                                r="30"
                                 stroke="#E5E7EB"
-                                strokeWidth="10"
+                                strokeWidth="6"
                                 fill="none"
                             />
                             {/* Cercle de progression */}
                             <circle
-                                cx="56"
-                                cy="56"
-                                r="45"
+                                cx="40"
+                                cy="40"
+                                r="30"
                                 stroke="url(#gradient)"
-                                strokeWidth="10"
+                                strokeWidth="6"
                                 fill="none"
                                 strokeLinecap="round"
                                 strokeDasharray={circumference}
@@ -130,11 +130,11 @@ export default function PerformanceModeles() {
                             </defs>
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-2xl font-bold text-gray-900">{percentage}%</span>
+                            <span className="text-lg font-bold text-gray-900">{percentage}%</span>
                         </div>
                     </div>
                 </div>
-                <p className="text-gray-400 text-sm font-poppins text-center">Variance expliquée par le modèle</p>
+                <p className="text-gray-400 text-[10px] font-poppins text-center">Variance expliquée</p>
             </div>
         );
     };
@@ -269,7 +269,7 @@ export default function PerformanceModeles() {
             {!loading && metricsData && (
                 <>
                     {/* Section KPIs - Métriques principales */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
                         <MetricCard
                             title="RMSE"
                             value={metricsData.metrics?.RMSE?.toFixed(2) || '--'}
@@ -441,4 +441,3 @@ export default function PerformanceModeles() {
         </div>
     );
 }
-
