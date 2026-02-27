@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FaChevronLeft, FaChevronRight, FaFileCsv, FaFileExcel, FaFileExport, FaFileImage, FaHistory, FaSearch, FaSpinner, FaChartLine, FaChartBar, FaTh, FaArrowUp, FaArrowDown } from "react-icons/fa";
 import { MdShowChart } from "react-icons/md";
 import { BsCalendarDate } from "react-icons/bs";
@@ -24,7 +24,7 @@ export default function AnalyseHistorique() {
     // États pour les filtres
     const [startDate, setStartDate] = useState('2017-12-25');
     const [endDate, setEndDate] = useState('2017-12-31');
-    const [resample] = useState('H'); // Fixé à 'H' (horaire)
+    const [resample, setResample] = useState('H'); // Par défaut : horaire
     const [typeConsommation, setTypeConsommation] = useState('CONSOMMATION_TOTALE');
     const [chartType, setChartType] = useState('line'); // 'line', 'boxplot', 'heatmap'
 
@@ -127,8 +127,7 @@ export default function AnalyseHistorique() {
         }
 
         if (tableauDonnees && tableauDonnees.length > 0) {
-            // Utiliser le format personnalisé pour l'axe X
-            const xData = tableauDonnees.map(row => formatCustomDate(row.timestamp));
+            const xData = tableauDonnees.map(row => new Date(row.timestamp)); // Utiliser des objets Date pour l'axe
             const yData = tableauDonnees.map(row => row.consommation);
 
             const plotlyData = [{
@@ -145,7 +144,7 @@ export default function AnalyseHistorique() {
                 },
                 fill: 'tonexty',
                 fillcolor: 'rgba(227, 0, 27, 0.1)',
-                hovertemplate: '<b>%{x}</b><br>Consommation: %{y:.1f} MW<extra></extra>'
+                hovertemplate: '<b>%{x|%d/%m/%y %Hh}</b><br>Consommation: %{y:.1f} MW<extra></extra>'
             }];
 
             setTransformedData(plotlyData);
@@ -164,17 +163,15 @@ export default function AnalyseHistorique() {
         let plotData = [];
         let layout = {};
 
-        // Fonction helper pour formater les dates des pics/creux
         const formatPeakDateForChart = (peak) => {
             const rawDate = peak.time || peak.timestamp || peak.date || peak.index;
             if (!rawDate) return null;
-            return formatCustomDate(rawDate);
+            return new Date(rawDate);
         };
 
         if (chartType === 'line') {
             plotData = [...transformedData];
 
-            // Pics
             if (peaksData && peaksData.length > 0) {
                 const peaksX = peaksData.map(p => formatPeakDateForChart(p)).filter(x => x !== null);
                 const peaksY = peaksData.map(p => p.value || p.y || p.CONSOMMATION_TOTALE);
@@ -186,12 +183,11 @@ export default function AnalyseHistorique() {
                         mode: 'markers',
                         name: 'Pics (Max)',
                         marker: { color: '#E3001B', size: 12, symbol: 'triangle-up', line: { color: '#ffffff', width: 2 } },
-                        hovertemplate: '<b>🔺 Pic Maximum</b><br>Date: %{x}<br>Valeur: %{y:.2f} MW<extra></extra>'
+                        hovertemplate: '<b>🔺 Pic Maximum</b><br>Date: %{x|%d/%m/%y %Hh}<br>Valeur: %{y:.2f} MW<extra></extra>'
                     });
                 }
             }
 
-            // Creux
             if (troughsData && troughsData.length > 0) {
                 const troughsX = troughsData.map(t => formatPeakDateForChart(t)).filter(x => x !== null);
                 const troughsY = troughsData.map(t => t.value || t.y || t.CONSOMMATION_TOTALE);
@@ -203,47 +199,53 @@ export default function AnalyseHistorique() {
                         mode: 'markers',
                         name: 'Creux (Min)',
                         marker: { color: '#FDB913', size: 12, symbol: 'triangle-down', line: { color: '#ffffff', width: 2 } },
-                        hovertemplate: '<b>🔻 Creux Minimum</b><br>Date: %{x}<br>Valeur: %{y:.2f} MW<extra></extra>'
+                        hovertemplate: '<b>🔻 Creux Minimum</b><br>Date: %{x|%d/%m/%y %Hh}<br>Valeur: %{y:.2f} MW<extra></extra>'
                     });
                 }
             }
 
             layout = {
                 ...getPlotlyLayout('', 'Date / Heure', 'Consommation (MW)'),
-                xaxis: { tickangle: -45 }
+                xaxis: { 
+                    type: 'date',
+                    rangeslider: { visible: true },
+                    rangeselector: {
+                        buttons: [
+                            {count: 1, label: '1j', step: 'day', stepmode: 'backward'},
+                            {count: 7, label: '1s', step: 'day', stepmode: 'backward'},
+                            {count: 1, label: '1m', step: 'month', stepmode: 'backward'},
+                            {step: 'all'}
+                        ]
+                    }
+                }
             };
 
         } else if (chartType === 'boxplot') {
-            // Boxplot par jour
-            // X = Jours, Y = Consommations
-            plotData = [{
-                x: rawData.map(r => r.date), // Groupement par date (JJ/MM/AAAA)
-                y: rawData.map(r => r.consommation),
-                type: 'box',
-                name: 'Distribution',
-                marker: { color: '#E3001B', size: 3 }, // Points plus petits
-                boxpoints: 'all', // Afficher tous les points (consommation horaire)
-                jitter: 0.3,
-                pointpos: -1.8
-            }];
+            const uniqueDates = [...new Set(rawData.map(r => r.date))];
+            plotData = uniqueDates.map((date, index) => {
+                const dayData = rawData.filter(r => r.date === date);
+                return {
+                    y: dayData.map(r => r.consommation),
+                    type: 'box',
+                    name: date,
+                    marker: { color: index % 2 === 0 ? '#E3001B' : '#FDB913' },
+                    boxpoints: 'all',
+                    jitter: 0.3,
+                    pointpos: -1.8
+                };
+            });
             
             layout = {
                 ...getPlotlyLayout('', 'Jour', 'Consommation (MW)'),
                 title: 'Distribution journalière de la consommation',
-                xaxis: { tickangle: -45 }
+                xaxis: { tickangle: -45 },
+                showlegend: false
             };
 
         } else if (chartType === 'heatmap') {
-            // Heatmap: X = Jours, Y = Heures
-            const dates = [...new Set(rawData.map(r => r.date))].sort(); // Axe X
-            // Extraire les heures (00:00, 01:00...)
-            const hours = [...new Set(rawData.map(r => {
-                // r.periode est formaté par transformSeriesData, format JJ/MM/AAAA HH:00
-                // On veut juste HH:00
-                return r.periode.split(' ')[1]; 
-            }))].sort(); // Axe Y
+            const dates = [...new Set(rawData.map(r => r.date))].sort();
+            const hours = [...new Set(rawData.map(r => r.periode.split(' ')[1]))].sort();
 
-            // Matrice Z[row][col] -> Z[hour][date]
             const zData = hours.map(hour => {
                 return dates.map(date => {
                     const point = rawData.find(r => r.date === date && r.periode.includes(hour));
@@ -253,8 +255,8 @@ export default function AnalyseHistorique() {
 
             plotData = [{
                 z: zData,
-                x: dates, // Jours en abscisse
-                y: hours, // Heures en ordonnée
+                x: dates,
+                y: hours,
                 type: 'heatmap',
                 colorscale: [
                     [0, '#FFF3CD'],
@@ -263,19 +265,21 @@ export default function AnalyseHistorique() {
                     [0.75, '#E3001B'],
                     [1, '#8B0000']
                 ],
-                colorbar: { title: 'MW' },
-                hovertemplate: 'Jour: %{x}<br>Heure: %{y}<br>Conso: %{z:.2f} MW<extra></extra>'
+                colorbar: { title: 'MW' }
             }];
 
             layout = {
                 ...getPlotlyLayout('', 'Jour', 'Heure'),
                 title: 'Carte de chaleur (Jours vs Heures)',
-                xaxis: { tickangle: -45 },
+                xaxis: { 
+                    title: { text: 'Jour', font: { size: 14, weight: 'bold' } },
+                    tickangle: -45 
+                },
                 yaxis: { 
+                    title: { text: 'Heure', font: { size: 14, weight: 'bold' } },
                     tickangle: 0, 
-                    automargin: true,
-                    tickmode: 'linear', // Force l'affichage linéaire des ticks
-                    dtick: 2 // Intervalle de 2 heures
+                    automargin: true, 
+                    dtick: 2 
                 }
             };
         }
@@ -377,69 +381,63 @@ export default function AnalyseHistorique() {
                     Recherche de données
                 </h2>
 
-                {/* Période : Date début et fin */}
-                <div className="mb-6">
-                    <h3 className="text-gray-700 font-semibold mb-3">Période</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2">
-                                <BsCalendarDate className="text-[#E3001B] text-xl" />
-                                Date de début
-                            </label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
-                            />
-                        </div>
-                        <div>
-                            <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2">
-                                <BsCalendarDate className="text-[#E3001B] text-xl" />
-                                Date de fin
-                            </label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
-                            />
-                        </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                    {/* Date de début */}
+                    <div>
+                        <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2">
+                            <BsCalendarDate className="text-[#E3001B] text-xl" />
+                            Date de début
+                        </label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
+                        />
+                    </div>
+
+                    {/* Date de fin */}
+                    <div>
+                        <label className="flex items-center gap-2 text-gray-600 font-semibold mb-2">
+                            <BsCalendarDate className="text-[#E3001B] text-xl" />
+                            Date de fin
+                        </label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
+                        />
+                    </div>
+
+                    {/* Intervalle de période */}
+                    <div>
+                        <label className="block text-gray-600 font-semibold mb-2">Intervalle</label>
+                        <select
+                            value={resample}
+                            onChange={(e) => setResample(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
+                        >
+                            <option value="H">Par heure</option>
+                            <option value="30min">Par 30 min</option>
+                            <option value="D">Par jour</option>
+                            <option value="W">Par semaine</option>
+                        </select>
                     </div>
                 </div>
 
-                {/* Paramètres d'analyse (Intervalle + Type) */}
+                {/* Type de graphique */}
                 <div className="mb-6">
-                    <h3 className="text-gray-700 font-semibold mb-3">Paramètres d'analyse</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Intervalle (Fixé à Heure) */}
-                        <div>
-                            <label className="block text-gray-600 font-semibold mb-2 text-sm">Intervalle</label>
-                            <div className="flex items-center gap-3 bg-gray-100 p-3 rounded-lg border border-gray-200 opacity-80 cursor-not-allowed">
-                                <input
-                                    type="radio"
-                                    checked={true}
-                                    readOnly
-                                    className="w-5 h-5 accent-[#E3001B] cursor-not-allowed"
-                                />
-                                <span className="font-medium text-gray-600">Par heure</span>
-                            </div>
-                        </div>
-
-                        {/* Type de consommation */}
-                        <div>
-                            <label className="block text-gray-600 font-semibold mb-2 text-sm">Type de consommation</label>
-                            <label className="flex items-center gap-3 text-gray-700 cursor-pointer bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition-all border border-gray-200">
-                                <input
-                                    type="checkbox"
-                                    checked={typeConsommation === 'CONSOMMATION_TOTALE'}
-                                    onChange={(e) => setTypeConsommation(e.target.checked ? 'CONSOMMATION_TOTALE' : '')}
-                                    className="w-5 h-5 accent-[#E3001B] cursor-pointer"
-                                />
-                                <span className="font-medium">Consommation Totale</span>
-                            </label>
-                        </div>
-                    </div>
+                    <label className="block text-gray-600 font-semibold mb-2">Type de graphique</label>
+                    <select
+                        value={chartType}
+                        onChange={(e) => setChartType(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#E3001B]/50 focus:border-[#E3001B]"
+                    >
+                        <option value="line">Ligne - Évolution temporelle</option>
+                        <option value="boxplot">Boxplot - Distribution statistique</option>
+                        <option value="heatmap">Heatmap - Concentration par heure/jour</option>
+                    </select>
                 </div>
 
                 {/* Bouton Rechercher */}
@@ -470,115 +468,7 @@ export default function AnalyseHistorique() {
                 </div>
             )}
 
-            {/* Visualisations dynamiques (GRAPHE D'ABORD) */}
-            {showGraph && (() => {
-                const visualization = getVisualization();
-                if (!visualization) return null;
-
-                return (
-                    <div className="mb-8">
-                        <ChartCard
-                            title={visualization.title}
-                            icon={<MdShowChart />}
-                        >
-                            {/* Contrôles du graphique : Type et Export */}
-                            <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                                {/* Sélecteur de type de graphique */}
-                                <div className="flex bg-gray-100 p-1 rounded-lg">
-                                    <button
-                                        onClick={() => setChartType('line')}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                                            chartType === 'line' 
-                                                ? 'bg-white text-[#E3001B] shadow-sm' 
-                                                : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                    >
-                                        <FaChartLine /> Ligne
-                                    </button>
-                                    <button
-                                        onClick={() => setChartType('boxplot')}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                                            chartType === 'boxplot' 
-                                                ? 'bg-white text-[#E3001B] shadow-sm' 
-                                                : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                    >
-                                        <FaChartBar /> Boxplot
-                                    </button>
-                                    <button
-                                        onClick={() => setChartType('heatmap')}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${
-                                            chartType === 'heatmap' 
-                                                ? 'bg-white text-[#E3001B] shadow-sm' 
-                                                : 'text-gray-600 hover:text-gray-900'
-                                        }`}
-                                    >
-                                        <FaTh /> Heatmap
-                                    </button>
-                                </div>
-
-                                {/* Boutons d'export */}
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={handleExportPNG}
-                                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200 text-sm"
-                                    >
-                                        <FaFileImage /> PNG
-                                    </button>
-                                    <button
-                                        onClick={handleExportCSV}
-                                        className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200 text-sm"
-                                    >
-                                        <FaFileCsv /> CSV
-                                    </button>
-                                    <button
-                                        onClick={handleExportExcel}
-                                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm"
-                                    >
-                                        <FaFileExcel /> Excel
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Graphique Plotly */}
-                            <div className="w-full h-[500px]">
-                                <Plot
-                                    ref={plotlyRef}
-                                    data={visualization.data}
-                                    layout={{
-                                        ...visualization.layout,
-                                        margin: { t: 40, r: 50, b: 80, l: 80 },
-                                        autosize: true,
-                                        showlegend: true,
-                                        legend: {
-                                            orientation: 'h',
-                                            yanchor: 'bottom',
-                                            y: 1.02,
-                                            xanchor: 'right',
-                                            x: 1
-                                        }
-                                    }}
-                                    style={{ width: '100%', height: '100%' }}
-                                    config={{
-                                        displayModeBar: true,
-                                        responsive: true,
-                                        toImageButtonOptions: {
-                                            format: 'png',
-                                            filename: 'analyse_historique',
-                                            height: 500,
-                                            width: 800,
-                                            scale: 1
-                                        }
-                                    }}
-                                    useResizeHandler={true}
-                                />
-                            </div>
-                        </ChartCard>
-                    </div>
-                );
-            })()}
-
-            {/* Statistiques dynamiques (APRES LE GRAPHE) */}
+            {/* Statistiques dynamiques */}
             {showGraph && statistics && !loading && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 border border-gray-100">
@@ -609,6 +499,99 @@ export default function AnalyseHistorique() {
                     </div>
                 </div>
             )}
+
+            {/* Visualisations dynamiques */}
+            {showGraph && (() => {
+                const visualization = getVisualization();
+                if (!visualization) return null;
+
+                return (
+                    <ChartCard
+                        title={visualization.title}
+                        icon={<MdShowChart />}
+                    >
+                        {/* Boutons d'export */}
+                        <div className="flex justify-end items-center gap-2 mb-4">
+                            <button
+                                onClick={handleExportPNG}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200 text-sm"
+                            >
+                                <FaFileImage /> PNG
+                            </button>
+                            <button
+                                onClick={handleExportCSV}
+                                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 border border-gray-200 text-sm"
+                            >
+                                <FaFileCsv /> CSV
+                            </button>
+                            <button
+                                onClick={handleExportExcel}
+                                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm"
+                            >
+                                <FaFileExcel /> Excel
+                            </button>
+                        </div>
+
+                        {/* Indicateur de statut peaks/troughs (uniquement pour Line Chart) */}
+                        {chartType === 'line' && (
+                            <div className="flex items-center gap-4 text-sm mb-4 justify-end">
+                                {peaksTroughsLoading && (
+                                    <span className="flex items-center gap-2 text-gray-500">
+                                        <FaSpinner className="animate-spin" />
+                                        Chargement pics/creux...
+                                    </span>
+                                )}
+                                {peaksData && peaksData.length > 0 && (
+                                    <span className="flex items-center gap-2 text-[#E3001B]">
+                                        <span className="w-3 h-3 bg-[#E3001B] rounded-full"></span>
+                                        {peaksData.length} pic{peaksData.length > 1 ? 's' : ''}
+                                    </span>
+                                )}
+                                {troughsData && troughsData.length > 0 && (
+                                    <span className="flex items-center gap-2 text-[#FDB913]">
+                                        <span className="w-3 h-3 bg-[#FDB913] rounded-full"></span>
+                                        {troughsData.length} creux
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Graphique Plotly */}
+                        <div className="w-full h-[500px]">
+                            <Plot
+                                ref={plotlyRef}
+                                data={visualization.data}
+                                layout={{
+                                    ...visualization.layout,
+                                    margin: { t: 40, r: 50, b: 80, l: 80 },
+                                    autosize: true,
+                                    showlegend: true,
+                                    legend: {
+                                        orientation: 'h',
+                                        yanchor: 'bottom',
+                                        y: 1.02,
+                                        xanchor: 'right',
+                                        x: 1
+                                    }
+                                }}
+                                style={{ width: '100%', height: '100%' }}
+                                config={{
+                                    displayModeBar: true,
+                                    responsive: true,
+                                    toImageButtonOptions: {
+                                        format: 'png',
+                                        filename: 'analyse_historique',
+                                        height: 500,
+                                        width: 800,
+                                        scale: 1
+                                    }
+                                }}
+                                useResizeHandler={true}
+                            />
+                        </div>
+                    </ChartCard>
+                );
+            })()}
 
             {/* Tableau des données brutes */}
             {showGraph && rawData.length > 0 && !loading && (

@@ -55,10 +55,9 @@ export default function Prevision24h() {
 
         const predictions = response.predictions;
 
-        // Créer le tableau de données : hour devient "01:00", "02:00", etc.
-        // hour=1 → "01:00", hour=24 → "00:00" (minuit du jour suivant)
+        // Créer le tableau de données : hour devient "01", "02", etc.
         const tableauDonnees = predictions.map(item => ({
-            heure: item.hour === 24 ? '00:00' : `${item.hour.toString().padStart(2, '0')}:00`,
+            heure: item.hour.toString().padStart(2, '0'),
             consommation: item.prediction
         }));
 
@@ -86,7 +85,7 @@ export default function Prevision24h() {
 
         return predictionData.tableauDonnees.map((row) => {
             const value = row.consommation;
-            const hourNum = parseInt(row.heure.split(':')[0]);
+            const hourNum = parseInt(row.heure);
 
             // Déterminer le statut basé sur la valeur et l'heure
             let statut = 'Normal';
@@ -95,7 +94,7 @@ export default function Prevision24h() {
             }
 
             return {
-                heure: row.heure,
+                heure: `${row.heure}:00`, // Affichage avec :00 dans le tableau
                 prevision: value.toFixed(2),
                 statut
             };
@@ -516,11 +515,12 @@ export default function Prevision24h() {
                                     plot_bgcolor: 'rgba(0,0,0,0)',
                                     font: { color: '#1F2937', family: 'Poppins' },
                                     xaxis: {
+                                        type: 'category',
                                         gridcolor: '#E5E7EB',
                                         zerolinecolor: '#D1D5DB',
-                                        title: { text: 'Date / Heure', font: { size: 14 } },
+                                        title: { text: 'heures (H)', font: { size: 14 } },
                                         tickfont: { color: '#6B7280', size: 11 },
-                                        tickangle: -45
+                                        tickangle: 0
                                     },
                                     yaxis: {
                                         gridcolor: '#E5E7EB',

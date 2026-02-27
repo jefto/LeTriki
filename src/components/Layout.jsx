@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import SideBar from './SideBar';
 
 export default function Layout() {
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
 
     const toggleSidebar = () => {
         setSidebarCollapsed(!sidebarCollapsed);
