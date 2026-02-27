@@ -43,16 +43,6 @@ export default function AnalyseHistorique() {
     const [currentPage, setCurrentPage] = useState(1);
     const rowsPerPage = 20;
 
-    // Fonction pour formater la date selon le format demandé : JJ/MM/AA HHh
-    const formatCustomDate = (timestamp) => {
-        try {
-            const date = new Date(timestamp);
-            return format(date, 'dd/MM/yy HH') + 'h';
-        } catch (e) {
-            return '';
-        }
-    };
-
     // Fonction pour charger les données depuis l'API
     const handleSearch = async () => {
         if (!startDate || !endDate) {
@@ -205,8 +195,8 @@ export default function AnalyseHistorique() {
             }
 
             layout = {
-                ...getPlotlyLayout('', 'Date / Heure', 'Consommation (MW)'),
                 xaxis: { 
+                    title: { text: 'Date / Heure', font: { size: 14, weight: 'bold' }, standoff: 20 },
                     type: 'date',
                     rangeslider: { visible: true },
                     rangeselector: {
@@ -217,6 +207,9 @@ export default function AnalyseHistorique() {
                             {step: 'all'}
                         ]
                     }
+                },
+                yaxis: {
+                    title: { text: 'Consommation (MW)', font: { size: 14, weight: 'bold' }, standoff: 20 }
                 }
             };
 
@@ -236,9 +229,14 @@ export default function AnalyseHistorique() {
             });
             
             layout = {
-                ...getPlotlyLayout('', 'Jour', 'Consommation (MW)'),
                 title: 'Distribution journalière de la consommation',
-                xaxis: { tickangle: -45 },
+                xaxis: { 
+                    title: { text: 'Jour', font: { size: 14, weight: 'bold' }, standoff: 20 },
+                    tickangle: -45 
+                },
+                yaxis: {
+                    title: { text: 'Consommation (MW)', font: { size: 14, weight: 'bold' }, standoff: 20 }
+                },
                 showlegend: false
             };
 
@@ -269,14 +267,13 @@ export default function AnalyseHistorique() {
             }];
 
             layout = {
-                ...getPlotlyLayout('', 'Jour', 'Heure'),
                 title: 'Carte de chaleur (Jours vs Heures)',
                 xaxis: { 
-                    title: { text: 'Jour', font: { size: 14, weight: 'bold' } },
+                    title: { text: 'Jour', font: { size: 14, weight: 'bold' }, standoff: 20 },
                     tickangle: -45 
                 },
                 yaxis: { 
-                    title: { text: 'Heure', font: { size: 14, weight: 'bold' } },
+                    title: { text: 'Heure', font: { size: 14, weight: 'bold' }, standoff: 20 },
                     tickangle: 0, 
                     automargin: true, 
                     dtick: 2 
