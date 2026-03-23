@@ -21,6 +21,8 @@ export default function Dashboard() {
         weeklyHistData,
         predictionComboData,
         monthHeatmapData,
+        cityDistributionData,
+        cityDistributionLoading,
         modelMetrics,
         predictionLoading,
         currentHour,
@@ -55,7 +57,7 @@ export default function Dashboard() {
                         {/* Consommation Hebdo + Répartition Villes */}
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             <WeeklyConsumptionChart data={weeklyHistData} />
-                            <CityDistributionChart />
+                            <CityDistributionChart data={cityDistributionData} loading={cityDistributionLoading} />
                         </div>
 
                         {/* Prévisions 24h */}

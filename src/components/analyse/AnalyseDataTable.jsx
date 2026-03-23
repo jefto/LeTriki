@@ -1,9 +1,11 @@
 import React from 'react';
-import { FaHistory, FaFileExcel, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaHistory, FaFileExcel, FaChevronLeft, FaChevronRight, FaMapMarkerAlt } from 'react-icons/fa';
 import { ChartCard } from '../common';
+import { AVAILABLE_LOCALITES } from '../../hooks/useAnalyseHistorique';
 
 export default function AnalyseDataTable({
     rawData,
+    localite,
     currentPage,
     rowsPerPage,
     onPageChange,
@@ -13,14 +15,29 @@ export default function AnalyseDataTable({
 
     const totalPages = Math.ceil(rawData.length / rowsPerPage);
 
+    const isLocaliteSpecific = localite && localite !== 'CONSOMMATION_TOTALE';
+    const localiteLabel = isLocaliteSpecific
+        ? AVAILABLE_LOCALITES.find(l => l.value === localite)?.label || localite
+        : null;
+    const colHeader = localiteLabel ? `Consommation ${localiteLabel} (MW)` : 'Consommation (MW)';
+    const tableTitle = localiteLabel ? `Données brutes — ${localiteLabel}` : 'Données brutes';
+
     return (
         <div className="mt-8">
-            <ChartCard title="Données brutes" icon={<FaHistory />}>
-                {/* Bouton Export Excel au-dessus du tableau */}
-                <div className="flex justify-between items-center mb-4">
-                    <span className="text-gray-500 text-sm">
-                        {rawData.length} enregistrement{rawData.length > 1 ? 's' : ''} au total
-                    </span>
+            <ChartCard title={tableTitle} icon={<FaHistory />}>
+                {/* Localité badge + Bouton Export Excel */}
+                <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                        <span className="text-gray-500 text-sm">
+                            {rawData.length} enregistrement{rawData.length > 1 ? 's' : ''} au total
+                        </span>
+                        {isLocaliteSpecific && (
+                            <span className="flex items-center gap-1 text-xs font-semibold bg-red-50 text-[#E3001B] border border-red-200 px-2 py-1 rounded-full">
+                                <FaMapMarkerAlt className="text-[10px]" />
+                                {localiteLabel}
+                            </span>
+                        )}
+                    </div>
                     <button
                         onClick={onExportExcel}
                         className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2"
@@ -36,7 +53,7 @@ export default function AnalyseDataTable({
                         <thead>
                             <tr className="border-b-2 border-gray-200 bg-gray-50">
                                 <th className="text-left py-3 px-4 font-semibold text-[#E3001B]">Période</th>
-                                <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">Consommation (MW)</th>
+                                <th className="text-right py-3 px-4 font-semibold text-[#E3001B]">{colHeader}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -129,4 +146,3 @@ export default function AnalyseDataTable({
         </div>
     );
 }
-

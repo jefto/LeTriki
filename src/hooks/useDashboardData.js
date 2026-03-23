@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { ModelService } from '../services/ModelService';
 import { AnalyticsService } from '../services/AnalyticsService';
 
+const LOCALITIES = ['LOME', 'ANFOIN', 'ATAKPAME', 'KARA', 'SULZER1', 'SULZER2', 'CTL', 'KPIME', 'KARA_PROD'];
+
 /**
  * Hook personnalisé pour charger et gérer les données du Dashboard
  */
@@ -12,6 +14,8 @@ export function useDashboardData() {
     const [weeklyHistData, setWeeklyHistData] = useState(null);
     const [predictionComboData, setPredictionComboData] = useState(null);
     const [monthHeatmapData, setMonthHeatmapData] = useState(null);
+    const [cityDistributionData, setCityDistributionData] = useState(null);
+    const [cityDistributionLoading, setCityDistributionLoading] = useState(false);
     const [seriesLoading, setSeriesLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -27,9 +31,10 @@ export function useDashboardData() {
     // Obtenir la prédiction pour la prochaine heure
     const getNextHourPrediction = () => {
         if (!nextPrediction || !nextPrediction.predictions) return null;
-        const nextHour = (currentHour + 1) % 24;
-        const hourToFind = nextHour === 0 ? 24 : nextHour;
-        return nextPrediction.predictions.find(p => p.hour === hourToFind);
+        const nextHour = (currentHour + 1) % 24; // 0 = minuit
+        // Normalisation : certaines APIs retournent hour 1-24 (où 24=minuit),
+        // d'autres retournent 0-23. On normalise via % 24 : hour 24 → 0, hour 0 → 0.
+        return nextPrediction.predictions.find(p => (p.hour % 24) === nextHour);
     };
 
     // Fonction pour agréger les données horaires en totaux journaliers
@@ -74,14 +79,15 @@ export function useDashboardData() {
                     horizon: 24
                 };
 
-                // Appels API en parallèle
+                // Utiliser Promise.allSettled pour la résilience : si un endpoint échoue,
+                // les autres données sont quand même affichées
                 const [
-                    rangeResponse,
-                    weekHourlyResponse,
-                    monthHourlyResponse,
-                    metricsResponse,
-                    predictionResponse
-                ] = await Promise.all([
+                    rangeResult,
+                    weekHourlyResult,
+                    monthHourlyResult,
+                    metricsResult,
+                    predictionResult
+                ] = await Promise.allSettled([
                     AnalyticsService.getSeries(dayMinus2, day0, 'H', 'CONSOMMATION_TOTALE'),
                     AnalyticsService.getSeries(weekStart, weekEnd, 'H', 'CONSOMMATION_TOTALE'),
                     AnalyticsService.getSeries(monthStart, monthEnd, 'H', 'CONSOMMATION_TOTALE'),
@@ -89,58 +95,96 @@ export function useDashboardData() {
                     ModelService.predictNextDay(predictionParams)
                 ]);
 
-                if (metricsResponse.data) setModelMetrics(metricsResponse.data);
-                if (predictionResponse.data) setNextPrediction(predictionResponse.data);
+                // Traiter les métriques du modèle (indépendamment des autres)
+                if (metricsResult.status === 'fulfilled' && metricsResult.value?.data) {
+                    setModelMetrics(metricsResult.value.data);
+                } else if (metricsResult.status === 'rejected') {
+                    console.warn('⚠️ Métriques modèle indisponibles:', metricsResult.reason?.message);
+                }
 
-                // Traitement des données de comparaison quotidienne
-                if (rangeResponse.data) {
-                    const processedData = processDailyComparisonData(
-                        rangeResponse.data,
-                        predictionResponse.data,
-                        currentHour
-                    );
-                    setDailyCurveData(processedData.curveData);
+                // Traiter les prévisions (indépendamment des autres)
+                const predictionData = predictionResult.status === 'fulfilled' ? predictionResult.value?.data : null;
+                if (predictionData) {
+                    setNextPrediction(predictionData);
+                } else if (predictionResult.status === 'rejected') {
+                    console.warn('⚠️ Prévisions indisponibles:', predictionResult.reason?.message);
+                }
 
-                    // Calcul des moyennes
-                    let weekDailyData = [];
-                    if (weekHourlyResponse.data && weekHourlyResponse.data.y) {
-                        weekDailyData = processHourlyToDaily(weekHourlyResponse.data.time_index, weekHourlyResponse.data.y);
-                    }
+                // Traiter la courbe de comparaison quotidienne
+                if (rangeResult.status === 'fulfilled' && rangeResult.value?.data) {
+                    try {
+                        const processedData = processDailyComparisonData(
+                            rangeResult.value.data,
+                            predictionData,
+                            currentHour
+                        );
+                        setDailyCurveData(processedData.curveData);
 
-                    const weeklyAvg = weekDailyData.length > 0
-                        ? weekDailyData.reduce((a, b) => a + b.total, 0) / weekDailyData.length
-                        : 0;
-
-                    let monthlyAvg = 0;
-                    if (monthHourlyResponse.data && monthHourlyResponse.data.y) {
-                        const monthDailyData = processHourlyToDaily(monthHourlyResponse.data.time_index, monthHourlyResponse.data.y);
-                        if (monthDailyData.length > 0) {
-                            monthlyAvg = monthDailyData.reduce((a, b) => a + b.total, 0) / monthDailyData.length;
+                        // Calcul des moyennes
+                        let weekDailyData = [];
+                        if (weekHourlyResult.status === 'fulfilled' && weekHourlyResult.value?.data?.y) {
+                            weekDailyData = processHourlyToDaily(
+                                weekHourlyResult.value.data.time_index,
+                                weekHourlyResult.value.data.y
+                            );
                         }
+
+                        const weeklyAvg = weekDailyData.length > 0
+                            ? weekDailyData.reduce((a, b) => a + b.total, 0) / weekDailyData.length
+                            : 0;
+
+                        let monthlyAvg = 0;
+                        if (monthHourlyResult.status === 'fulfilled' && monthHourlyResult.value?.data?.y) {
+                            const monthDailyData = processHourlyToDaily(
+                                monthHourlyResult.value.data.time_index,
+                                monthHourlyResult.value.data.y
+                            );
+                            if (monthDailyData.length > 0) {
+                                monthlyAvg = monthDailyData.reduce((a, b) => a + b.total, 0) / monthDailyData.length;
+                            }
+                        }
+
+                        setSummaryData({
+                            prevDayTotal: processedData.todayTotal,
+                            weeklyAvg,
+                            monthlyAvg
+                        });
+
+                        // Graphique hebdomadaire
+                        if (weekDailyData.length > 0) {
+                            setWeeklyHistData(processWeeklyData(weekDailyData));
+                        }
+                    } catch (err) {
+                        console.warn('⚠️ Erreur traitement courbe quotidienne:', err.message);
                     }
+                } else if (rangeResult.status === 'rejected') {
+                    console.warn('⚠️ Courbe quotidienne indisponible:', rangeResult.reason?.message);
+                    setError('Certaines données sont temporairement indisponibles.');
+                }
 
-                    setSummaryData({
-                        prevDayTotal: processedData.todayTotal,
-                        weeklyAvg: weeklyAvg,
-                        monthlyAvg: monthlyAvg
-                    });
-
-                    // Graphique hebdomadaire
-                    if (weekDailyData.length > 0) {
-                        setWeeklyHistData(processWeeklyData(weekDailyData));
+                // Traiter les prévisions 24h
+                if (predictionData?.predictions) {
+                    try {
+                        setPredictionComboData(processPredictionData(predictionData.predictions));
+                    } catch (err) {
+                        console.warn('⚠️ Erreur traitement prévisions:', err.message);
                     }
                 }
 
-                // Graphique de prévision
-                if (predictionResponse.data && predictionResponse.data.predictions) {
-                    setPredictionComboData(processPredictionData(predictionResponse.data.predictions));
+                // Traiter la heatmap mensuelle
+                if (monthHourlyResult.status === 'fulfilled' && monthHourlyResult.value?.data?.y) {
+                    try {
+                        setMonthHeatmapData(processMonthHeatmapData(monthHourlyResult.value.data));
+                    } catch (err) {
+                        console.warn('⚠️ Erreur traitement heatmap:', err.message);
+                    }
                 }
 
-                // Heatmap mensuel
-                if (monthHourlyResponse.data && monthHourlyResponse.data.y) {
-                    setMonthHeatmapData(processMonthHeatmapData(monthHourlyResponse.data));
-                }
+                setSeriesLoading(false);
+                setPredictionLoading(false);
 
+                // Charger les données de répartition par localité (en arrière-plan)
+                loadCityDistribution(weekStart, weekEnd);
             } catch (err) {
                 console.error('Erreur chargement dashboard:', err);
                 setError('Erreur de chargement des données.');
@@ -154,6 +198,34 @@ export function useDashboardData() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const loadCityDistribution = async (weekStart, weekEnd) => {
+        setCityDistributionLoading(true);
+        try {
+            const results = await Promise.allSettled(
+                LOCALITIES.map(loc => AnalyticsService.getConsommationLocalite(loc, weekStart, weekEnd))
+            );
+
+            const cityData = LOCALITIES
+                .map((loc, i) => {
+                    if (results[i].status === 'fulfilled') {
+                        const data = results[i].value?.data?.data || [];
+                        const total = data.reduce((sum, item) => sum + (item[loc] || 0), 0);
+                        return { city: loc, value: total };
+                    }
+                    return { city: loc, value: 0 };
+                })
+                .filter(c => c.value > 0);
+
+            if (cityData.length > 0) {
+                setCityDistributionData(cityData);
+            }
+        } catch (err) {
+            console.warn('⚠️ Erreur chargement répartition villes:', err.message);
+        } finally {
+            setCityDistributionLoading(false);
+        }
+    };
+
     return {
         // États
         loading,
@@ -163,6 +235,8 @@ export function useDashboardData() {
         weeklyHistData,
         predictionComboData,
         monthHeatmapData,
+        cityDistributionData,
+        cityDistributionLoading,
         modelMetrics,
         predictionLoading,
         currentHour,
@@ -203,14 +277,14 @@ function processDailyComparisonData(rangeData, predictionData, currentHour) {
         compY.push(dataMap[compKey] || null);
 
         let predictionValue = null;
-        if (i >= 0) {
-            if (predictionData && predictionData.predictions) {
-                const labelHour = mainDate.getHours();
-                const hourToFind = labelHour === 0 ? 24 : labelHour;
-                const pred = predictionData.predictions.find(p => p.hour === hourToFind);
-                if (pred) predictionValue = pred.prediction;
-            }
-        }
+                if (i >= 0) {
+                    if (predictionData && predictionData.predictions) {
+                        const labelHour = mainDate.getHours(); // 0–23, 0 = minuit
+                        // Normalisation : hour 24 → 0, couvre les APIs 1-24 ET 0-23
+                        const pred = predictionData.predictions.find(p => (p.hour % 24) === labelHour);
+                        if (pred) predictionValue = pred.prediction;
+                    }
+                }
 
         if (i < 0) {
             mainY.push(dataMap[mainKey] || null);

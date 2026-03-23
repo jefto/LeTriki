@@ -18,6 +18,7 @@ export default function AnalyseHistorique() {
         endDate,
         resample,
         chartType,
+        localite,
         showGraph,
         rawData,
         statistics,
@@ -30,6 +31,7 @@ export default function AnalyseHistorique() {
         setEndDate,
         setResample,
         setChartType,
+        setLocalite,
         setCurrentPage,
         handleSearch,
         getVisualization,
@@ -57,11 +59,13 @@ export default function AnalyseHistorique() {
                 endDate={endDate}
                 resample={resample}
                 chartType={chartType}
+                localite={localite}
                 loading={loading}
                 onStartDateChange={setStartDate}
                 onEndDateChange={setEndDate}
                 onResampleChange={setResample}
                 onChartTypeChange={setChartType}
+                onLocaliteChange={setLocalite}
                 onSearch={handleSearch}
             />
 
@@ -99,6 +103,7 @@ export default function AnalyseHistorique() {
             {showGraph && rawData.length > 0 && !loading && (
                 <AnalyseDataTable
                     rawData={rawData}
+                    localite={localite}
                     currentPage={currentPage}
                     rowsPerPage={rowsPerPage}
                     onPageChange={setCurrentPage}

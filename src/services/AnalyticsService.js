@@ -51,6 +51,22 @@ export const AnalyticsService = {
         return api.get('/api/weekday_hist');
     },
 
+    // Récupère la consommation par localité (toutes les 30 minutes)
+    // Paramètres: localite (LOME, ANFOIN, ATAKPAME, KARA, SULZER1, SULZER2, CTL, KPIME, KARA_PROD, CONSOMMATION_TOTALE)
+    getConsommationLocalite: (localite, start, end) => {
+        const formattedStart = format(new Date(start), 'yyyy-MM-dd');
+        const formattedEnd = format(new Date(end), 'yyyy-MM-dd');
+
+        const params = new URLSearchParams({
+            localite: localite,
+            start: formattedStart,
+            end: formattedEnd
+        });
+
+        console.log(`📡 AnalyticsService.getConsommationLocalite - Appel /api/consommation_localite?${params.toString()}`);
+        return api.get(`/api/consommation_localite?${params.toString()}`);
+    },
+
     // Récupère les pics et creux
     getAnalyticsPeaksTroughs: (start, end, resample = "D", target = "CONSOMMATION_TOTALE", min_prominence = null, min_distance = 1, dateFormat = 'yyyy-MM-dd') => {
         const formattedStart = format(new Date(start), dateFormat);
